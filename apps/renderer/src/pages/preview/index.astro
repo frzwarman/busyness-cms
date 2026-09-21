@@ -1,0 +1,150 @@
+---
+/**
+ * Preview shell loaded in the Studio iframe. Receives validated postMessage payloads from the
+ * Studio origin, asks /preview/render for production markup, and swaps it in place.
+ */
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+const studioOrigin = import.meta.env.PUBLIC_STUDIO_ORIGIN ?? 'http://localhost:5180';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Draft preview</title>
+    <style>
+      body { margin: 0; }
+      #siteos-root:empty + #siteos-waiting { display: grid; }
+      #siteos-waiting { display: none; min-height: 60vh; place-items: center; font: 14px system-ui, sans-serif; color: #6b7280; }
+      #siteos-badge { position: fixed; top: 8px; right: 8px; z-index: 2147483000; font: 600 11px/1 system-ui, sans-serif; letter-spacing: .06em; padding: 6px 8px; background: #111; color: #fff; border-radius: 4px; opacity: .85; pointer-events: none; }
+      [data-section-id] { cursor: pointer; }
+      [data-section-id]:hover { outline: 1px dashed rgb(37 99 235 / .7); outline-offset: -1px; }
+      [data-section-id].is-selected { outline: 2px solid #2563eb; outline-offset: -2px; }
+      [data-field]:hover { outline: 1px solid rgb(37 99 235 / .9); outline-offset: 2px; border-radius: 2px; }
+      #siteos-root a { pointer-events: auto; }
+    </style>
+  </head>
+  <body data-studio-origin={studioOrigin}>
+    <div id="siteos-root"></div>
+    <div id="siteos-waiting">Waiting for the editor…</div>
+    <div id="siteos-badge" aria-hidden="true">DRAFT PREVIEW</div>
+    <script>
+      import {
+        isTrustedOrigin,
+        PREVIEW_PROTOCOL_VERSION,
+        type PreviewRenderPayload,
+        type PreviewToStudioMessage,
+        studioToPreviewMessageSchema,
+      } from '@siteos/schemas';
+
+      const studioOrigin = document.body.dataset.studioOrigin as string;
+      const root = document.getElementById('siteos-root') as HTMLDivElement;
+      let selectedId: string | null = null;
+      let renderSeq = 0;
+
+      function send(msg: PreviewToStudioMessage) {
+        window.parent.postMessage(msg, studioOrigin);
+      }
+
+      function applySelection() {
+        for (const el of root.querySelectorAll('[data-section-id].is-selected')) el.classList.remove('is-selected');
+        if (!selectedId) return;
+        const el = root.querySelector(`[data-section-id="${CSS.escape(selectedId)}"]`);
+        el?.classList.add('is-selected');
+      }
+
+      /** Add stylesheets/styles from the rendered document that this shell doesn't have yet. Resolves when links load. */
+      async function syncHead(incoming: Document) {
+        const have = new Set(
+          [...document.head.querySelectorAll('link[rel="stylesheet"], style')].map((n) =>
+            n instanceof HTMLLinkElement ? `link:${n.href}` : `style:${n.textContent}`,
+          ),
+        );
+        const waits: Promise<void>[] = [];
+        for (const n of incoming.head.querySelectorAll('link[rel="stylesheet"], style')) {
+          const key = n instanceof HTMLLinkElement ? `link:${n.href}` : `style:${n.textContent}`;
+          if (have.has(key)) continue;
+          have.add(key);
+          const clone = document.importNode(n, true);
+          if (clone instanceof HTMLLinkElement) {
+            waits.push(new Promise<void>((res) => {
+              clone.addEventListener('load', () => res(), { once: true });
+              clone.addEventListener('error', () => res(), { once: true });
+              setTimeout(res, 1500);
+            }));
+          }
+          document.head.appendChild(clone);
+        }
+        // Theme variables change on every render: replace the previous theme <style> instead of accumulating.
+        await Promise.all(waits);
+      }
+
+      function swapThemeStyle(incoming: Document) {
+        const next = [...incoming.head.querySelectorAll('style')].find((s) => s.textContent?.startsWith(':root{'));
+        const prev = [...document.head.querySelectorAll('style')].filter((s) => s.textContent?.startsWith(':root{'));
+        if (next) {
+          for (const p of prev) if (p.textContent !== next.textContent) p.remove();
+          if (!prev.some((p) => p.textContent === next.textContent)) document.head.appendChild(document.importNode(next, true));
+        }
+      }
+
+      async function render(payload: PreviewRenderPayload) {
+        const seq = ++renderSeq;
+        selectedId = payload.selectedSectionId;
+        try {
+          const res = await fetch('/preview/render', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (seq !== renderSeq) return; // a newer render superseded this one
+          if (!res.ok) {
+            const detail = await res.json().catch(() => ({}));
+            throw new Error(detail.errors?.join('; ') ?? `Render failed (${res.status})`);
+          }
+          const html = await res.text();
+          if (seq !== renderSeq) return;
+          const incoming = new DOMParser().parseFromString(html, 'text/html');
+          await syncHead(incoming);
+          swapThemeStyle(incoming);
+          const main = incoming.getElementById('main');
+          root.replaceChildren(...(main ? [document.importNode(main, true)] : []));
+          applySelection();
+          send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:rendered', ok: true, height: document.documentElement.scrollHeight });
+        } catch (err) {
+          if (seq !== renderSeq) return;
+          send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:rendered', ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+
+      window.addEventListener('message', (event) => {
+        if (!isTrustedOrigin(event.origin, studioOrigin)) return;
+        const parsed = studioToPreviewMessageSchema.safeParse(event.data);
+        if (!parsed.success) return;
+        const msg = parsed.data;
+        if (msg.type === 'siteos:render') void render(msg.payload);
+        if (msg.type === 'siteos:select') {
+          selectedId = msg.sectionId;
+          applySelection();
+          root.querySelector(`[data-section-id="${CSS.escape(selectedId ?? '')}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+
+      // Click = select in the editor; never navigate away from the preview.
+      root.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
+        event.preventDefault();
+        const sectionEl = target.closest<HTMLElement>('[data-section-id]');
+        if (!sectionEl?.dataset.sectionId) return;
+        const fieldEl = target.closest<HTMLElement>('[data-field]');
+        selectedId = sectionEl.dataset.sectionId;
+        applySelection();
+        send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:selected', sectionId: selectedId, fieldPath: fieldEl?.dataset.field ?? null });
+      });
+
+      send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:ready' });
+    </script>
+  </body>
+</html>

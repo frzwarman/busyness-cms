@@ -1,0 +1,29 @@
+---
+/**
+ * POST a PreviewRenderPayload, receive the full page HTML rendered by the same components as
+ * production. Same-origin only (Astro's CSRF origin check), never cached, never indexed.
+ */
+import { previewRenderPayloadSchema } from '@siteos/schemas';
+import PageRenderer from '../../components/PageRenderer.astro';
+import Site from '../../layouts/Site.astro';
+
+if (Astro.request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: { Allow: 'POST' } });
+
+let body: unknown;
+try {
+  body = await Astro.request.json();
+} catch {
+  return new Response(JSON.stringify({ error: 'Body must be JSON' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+}
+const parsed = previewRenderPayloadSchema.safeParse(body);
+if (!parsed.success) {
+  const errors = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+  return new Response(JSON.stringify({ error: 'Invalid preview payload', errors }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+}
+const { page, theme, pages } = parsed.data;
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+---
+<Site page={page} theme={theme} siteName="Preview" noindex>
+  <PageRenderer page={page} theme={theme} pages={pages} mode="preview" />
+</Site>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" width="1600" height="1200" role="img" aria-label="Illustration of a coffee bar counter">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9d8c3"/><stop offset="1" stop-color="#c9a887"/></linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6b3f22"/><stop offset="1" stop-color="#8a5432"/></linearGradient>
+  </defs>
+  <rect width="1600" height="1200" fill="url(#wall)"/>
+  <circle cx="1180" cy="330" r="190" fill="#f6e7d2" opacity=".8"/>
+  <rect x="0" y="720" width="1600" height="480" fill="url(#wood)"/>
+  <rect x="0" y="700" width="1600" height="40" fill="#4a2a15"/>
+  <g transform="translate(380 460)">
+    <rect x="0" y="60" width="180" height="200" rx="18" fill="#fdfaf5"/>
+    <path d="M180 100h50a40 40 0 0 1 0 80h-50z" fill="none" stroke="#fdfaf5" stroke-width="22"/>
+    <ellipse cx="90" cy="70" rx="80" ry="22" fill="#c98a4b"/>
+  </g>
+  <g transform="translate(900 380)">
+    <rect x="0" y="0" width="260" height="330" rx="30" fill="#2b2b2b"/>
+    <rect x="30" y="30" width="200" height="90" rx="12" fill="#d8b98f"/>
+    <circle cx="130" cy="230" r="46" fill="#7c2d12"/>
+  </g>
+  <rect x="140" y="140" width="420" height="220" rx="8" fill="#f3ede3"/>
+  <text x="180" y="230" font-family="Georgia, serif" font-size="64" fill="#7c2d12">Kopi Sudut</text>
+  <text x="180" y="300" font-family="system-ui, sans-serif" font-size="30" fill="#78716c">specialty coffee · bogor</text>
+</svg>

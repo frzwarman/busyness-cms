@@ -1,0 +1,42 @@
+---
+import Button from '../primitives/Button.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { CtaProps } from './schema.ts';
+
+type Props = SectionRenderProps<CtaProps>;
+const { props: p, section, ctx } = Astro.props;
+const headingId = `${section.id}-heading`;
+// The card variant paints its own surface, so the section stays on the page background.
+const frameTheme = p.variant === 'card' ? 'light' : p.theme;
+---
+<SectionFrame section={section} theme={frameTheme} spacing={p.spacing} labelledBy={headingId} class:list={[`v-${p.variant}`]}>
+  <div class:list={['inner', p.variant === 'card' && 'card', p.variant === 'card' && `theme-${p.theme}`, p.variant === 'card' && 'section']}>
+    <div class="copy">
+      {p.eyebrow && <p class="eyebrow" data-field="eyebrow">{p.eyebrow}</p>}
+      <h2 id={headingId} class="t-h2" data-field="heading">{p.heading}</h2>
+      {p.description && <p class="t-lead muted" data-field="description">{p.description}</p>}
+    </div>
+    {(p.primaryCta || p.secondaryCta) && (
+      <div class="actions">
+        {p.primaryCta && <Button button={p.primaryCta} ctx={ctx} field="primaryCta" />}
+        {p.secondaryCta && <Button button={{ ...p.secondaryCta, style: p.secondaryCta.style === 'filled' ? 'outline' : p.secondaryCta.style }} ctx={ctx} field="secondaryCta" />}
+      </div>
+    )}
+  </div>
+</SectionFrame>
+
+<style>
+  .inner { display: grid; gap: 1.5rem; }
+  .copy { display: grid; gap: .75rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .v-banner .inner { justify-items: center; text-align: center; }
+  .v-banner .copy { max-width: 40rem; }
+  .v-banner .actions { justify-content: center; }
+  .v-card .inner { padding: calc(var(--card-spacing) * 2); border-radius: var(--radius-lg); }
+  .v-card .inner.section { padding-block: calc(var(--card-spacing) * 2); }
+  @media (min-width: 900px) {
+    .v-split .inner { grid-template-columns: 1fr auto; align-items: center; gap: 3rem; }
+    .v-card .inner { grid-template-columns: 1fr auto; align-items: center; }
+  }
+</style>

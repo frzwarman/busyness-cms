@@ -1,0 +1,43 @@
+---
+import Button from '../primitives/Button.astro';
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { ImageTextProps } from './schema.ts';
+
+type Props = SectionRenderProps<ImageTextProps>;
+const { props: p, section, ctx } = Astro.props;
+const headingId = `${section.id}-heading`;
+const paragraphs = p.body.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} labelledBy={headingId} class:list={[`v-${p.variant}`, `ratio-${p.imageRatio}`, p.image ? 'has-media' : 'no-media']}>
+  <div class="inner">
+    {p.image && <div class="media" data-field="image"><Picture image={p.image} priority={ctx.isFirst} /></div>}
+    <div class="copy">
+      {p.eyebrow && <p class="eyebrow" data-field="eyebrow">{p.eyebrow}</p>}
+      <h2 id={headingId} class="t-h2" data-field="heading">{p.heading}</h2>
+      {paragraphs.length > 0 && (
+        <div class="body" data-field="body">
+          {paragraphs.map((para) => <p>{para}</p>)}
+        </div>
+      )}
+      {p.cta && <div class="actions"><Button button={p.cta} ctx={ctx} field="cta" /></div>}
+    </div>
+  </div>
+</SectionFrame>
+
+<style>
+  .inner { display: grid; gap: 2.5rem; align-items: center; }
+  .copy { display: grid; gap: 1rem; }
+  .body { display: grid; gap: .75em; color: var(--section-muted); font-size: 1.0625rem; }
+  .actions { margin-top: .5rem; }
+  .ratio-square .media { aspect-ratio: 1; }
+  .ratio-landscape .media { aspect-ratio: 4 / 3; }
+  .ratio-portrait .media { aspect-ratio: 3 / 4; }
+  .v-stacked .media { aspect-ratio: 21 / 9; }
+  .v-stacked .copy { max-width: 44rem; }
+  @media (min-width: 900px) {
+    .v-image-left.has-media .inner, .v-image-right.has-media .inner { grid-template-columns: 1fr 1fr; gap: 4rem; }
+    .v-image-right .media { order: 2; }
+  }
+</style>

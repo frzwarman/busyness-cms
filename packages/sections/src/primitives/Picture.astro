@@ -1,0 +1,24 @@
+---
+/**
+ * Responsive image with focal point. Variants (320/960/1920 WebP) arrive with the asset
+ * pipeline; until an asset has variants we serve the single src with explicit dimensions.
+ */
+import { focalToObjectPosition, type ImageRef } from '@siteos/schemas';
+
+interface Props { image: ImageRef; priority?: boolean; sizes?: string; field?: string; class?: string }
+const { image, priority = false, sizes = '(min-width: 1024px) 50vw, 100vw', field, class: cls } = Astro.props;
+const alt = image.decorative ? '' : image.alt;
+---
+<img
+  src={image.src}
+  alt={alt}
+  width={image.width}
+  height={image.height}
+  sizes={sizes}
+  loading={priority ? 'eager' : 'lazy'}
+  fetchpriority={priority ? 'high' : undefined}
+  decoding={priority ? 'sync' : 'async'}
+  style={`object-position:${focalToObjectPosition(image)}`}
+  data-field={field}
+  class={cls}
+/>

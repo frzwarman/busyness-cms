@@ -1,0 +1,27 @@
+---
+/**
+ * Wraps every section: semantic <section>, stable id, editor hooks (data-section-*),
+ * theme + spacing classes driven by design tokens. Sections never set colors directly.
+ */
+import type { SectionInstance } from '@siteos/schemas';
+
+interface Props {
+  section: SectionInstance;
+  theme?: string;
+  spacing?: string;
+  /** Skip the .container so the section can go full-bleed. */
+  bleed?: boolean;
+  class?: string;
+  labelledBy?: string;
+}
+const { section, theme = 'light', spacing = 'standard', bleed = false, class: cls = '', labelledBy } = Astro.props;
+---
+<section
+  id={section.id}
+  data-section-id={section.id}
+  data-section-type={section.type}
+  class:list={['section', `theme-${theme}`, `spacing-${spacing}`, `s-${section.type}`, cls]}
+  aria-labelledby={labelledBy}
+>
+  {bleed ? <slot /> : <div class="container"><slot /></div>}
+</section>

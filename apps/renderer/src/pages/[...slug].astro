@@ -1,0 +1,13 @@
+---
+import PageRenderer from '../components/PageRenderer.astro';
+import { demoSite } from '../demo.ts';
+import Site from '../layouts/Site.astro';
+
+const slug = `/${Astro.params.slug ?? ''}`.replace(/\/$/, '') || '/';
+const page = demoSite.pageBySlug(slug);
+if (!page) return new Response('Not found', { status: 404 });
+Astro.response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+---
+<Site page={page} theme={demoSite.theme} siteName={demoSite.name}>
+  <PageRenderer page={page} theme={demoSite.theme} pages={demoSite.pages} mode="public" />
+</Site>

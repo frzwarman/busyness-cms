@@ -1,0 +1,27 @@
+---
+import { themeToCss } from '@siteos/design-system';
+import '@siteos/design-system/base.css';
+import type { PageDocument, ThemeTokens } from '@siteos/schemas';
+
+interface Props { page: PageDocument; theme: ThemeTokens; siteName: string; noindex?: boolean }
+const { page, theme, siteName, noindex = false } = Astro.props;
+const title = page.seo.title ?? `${page.title} — ${siteName}`;
+const description = page.seo.description;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {(noindex || page.seo.noindex) && <meta name="robots" content="noindex, nofollow" />}
+    <meta property="og:title" content={page.seo.ogTitle ?? title} />
+    {(page.seo.ogDescription ?? description) && <meta property="og:description" content={page.seo.ogDescription ?? description} />}
+    <style set:html={themeToCss(theme)} />
+  </head>
+  <body>
+    <a class="sr-only" href="#main">Skip to content</a>
+    <slot />
+  </body>
+</html>

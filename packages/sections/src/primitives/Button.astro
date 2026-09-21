@@ -1,0 +1,20 @@
+---
+import type { Button } from '@siteos/schemas';
+import type { RenderContext } from '../render-context.ts';
+
+interface Props { button: Button; ctx: RenderContext; field: string }
+const { button, ctx, field } = Astro.props;
+const href = ctx.href(button.link);
+const external = button.link.kind === 'url' && button.link.newTab;
+---
+{href ? (
+  <a
+    class:list={['btn', `btn-${button.style}`]}
+    href={href}
+    data-field={field}
+    target={external ? '_blank' : undefined}
+    rel={external ? 'noopener noreferrer' : undefined}
+  >{button.label}</a>
+) : (
+  <span class:list={['btn', `btn-${button.style}`, 'btn-broken']} data-field={field} title="This link points to a page that no longer exists">{button.label}</span>
+)}

@@ -1,0 +1,232 @@
+# SiteOS — a Business Website Operating System
+
+A headless CMS and structured visual website builder for small and medium businesses. Owners and
+marketing staff compose professional pages from a library of **structured sections**, edit them in a
+**live preview** that renders production markup, and publish **immutable versions** to a fast,
+lightweight **Astro** site. Users edit business intent (variant, alignment, theme) — never CSS.
+
+```text
+BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
+```
+
+> **Status:** Milestone 1 (architecture foundation) is complete and verified end-to-end. See
+> [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
+
+## What works today
+
+- Three-panel Studio (pages / sections / brand · live preview · inspector) with dark mode.
+- Section Registry driving the picker, inspector, navigator, validation, defaults, variants and migrations.
+- Three polished section types with 10 layout variants: Hero, Image + Text, Call to action.
+- Live preview in an iframe that renders **the same Astro components** as the public site.
+- Click a heading in the preview → the section is selected and the field is focused.
+- Desktop / tablet / mobile preview at real viewport widths.
+- Drag-and-drop reordering (dnd-kit) with keyboard and menu alternatives; duplicate, hide, delete.
+- Coalesced undo/redo (⌘Z / ⇧⌘Z), autosave with save-state indicator, ⌘S.
+- Design tokens with six theme presets, curated system font stacks, WCAG contrast warnings.
+- Typed links (page id, URL, email, phone, anchor); image refs with alt text, decorative flag and focal point.
+- Demo site “Kopi Sudut” rendered at `/` and `/about` with semantic HTML, no client JavaScript.
+
+## Quick start
+
+```bash
+pnpm install
+cp .env.example .env            # defaults work for local development
+pnpm dev                        # Studio → http://localhost:5180 · Renderer → http://localhost:4321
+```
+
+Other commands:
+
+```bash
+pnpm typecheck    # tsc / astro check across the workspace
+pnpm lint         # Biome
+pnpm test         # Vitest (packages + Studio)
+pnpm e2e          # Playwright: starts both dev servers, runs the Milestone 1 flow
+pnpm build        # production builds (Studio static assets, Renderer Cloudflare Worker)
+pnpm check        # all of the above except e2e
+```
+
+## Monorepo
+
+```text
+apps/
+  studio/          React 19 · Vite · Tailwind 4 · shadcn/ui · TanStack Router & Query · dnd-kit
+  renderer/        Astro 7 (server output, Cloudflare adapter) — public site, preview shell, render route
+  edge/            (M5) Cloudflare Worker + Hono: R2 upload authorization, form endpoints
+packages/
+  schemas/         Zod: page document, section envelope, links, images, theme tokens, preview protocol
+  sections/        defineSection · SectionRegistry · migrations · per-section folders with .astro renderers
+  design-system/   theme presets · token → CSS variables · base.css · contrast math
+  editor-core/     framework-free editor reducer (add/move/duplicate/hide/update, coalesced undo/redo)
+  content-sdk/     (M3) typed client for the published-content API
+docs/              architecture, section authoring, migrations, design system, publishing, assets, security, deployment, business packs
+e2e/               Playwright flows
+```
+
+Packages export TypeScript source directly (`exports: "./src/index.ts"`); Vite, Astro and Vitest
+consume it, so there is no package build step to keep in sync.
+
+## System architecture
+
+```mermaid
+flowchart LR
+  subgraph Studio["apps/studio (React)"]
+    UI[Navigator · Inspector · Picker · Brand]
+    EC[editor-core reducer]
+    UI --> EC
+  end
+  subgraph Shared["packages"]
+    REG[sections: registry + .astro]
+    SCH[schemas]
+    DS[design-system]
+  end
+  subgraph Renderer["apps/renderer (Astro on Cloudflare)"]
+    PR[PageRenderer.astro]
+    PV[/preview shell + POST /preview/render/]
+    PUB[/public routes/]
+  end
+  DB[(Supabase Postgres · RLS)]
+  R2[(Cloudflare R2)]
+  EC -- postMessage (validated) --> PV
+  PV --> PR
+  PUB --> PR
+  PR --> REG
+  REG --> SCH
+  PR --> DS
+  Studio -. drafts / publish (M2–M3) .-> DB
+  PUB -. published snapshots (M3) .-> DB
+  Studio -. signed uploads (M5) .-> R2
+```
+
+## Section Registry
+
+`defineSection()` is the single source of truth for a section: schema, defaults, variants (with
+wireframe thumbnails), inspector groups, migrations, capabilities and performance hints. It fails at
+module load if defaults or variants disagree with the schema. The registry drives the picker, the
+generated inspector, navigator children, validation and document normalization. Unknown or invalid
+sections are **kept and flagged**, never dropped.
+
+```mermaid
+flowchart TD
+  D[defineSection] --> R[SectionRegistry]
+  R --> P[Section picker: search, categories, thumbnails, variants]
+  R --> I[Inspector: generated controls]
+  R --> N[Navigator children]
+  R --> V[validate: migrate → parse]
+  R --> C[create with defaults]
+  M[apps/renderer sections/map.ts] -- type → .astro --> S[SectionRenderer.astro]
+  V --> S
+```
+
+Persisted shape: `{ id: "sec_…", type, schemaVersion, hidden, props }`. Variant lives in `props.variant`
+and is validated by the section schema, so there is one schema per section.
+See [docs/section-authoring.md](docs/section-authoring.md) and [docs/section-migrations.md](docs/section-migrations.md).
+
+## Live preview
+
+```mermaid
+sequenceDiagram
+  participant S as Studio
+  participant F as Preview iframe (/preview)
+  participant R as POST /preview/render
+  F->>S: siteos:ready (origin-checked)
+  S->>F: siteos:render {page, theme, pages, selectedSectionId} (Zod-validated)
+  F->>R: fetch same-origin JSON
+  R-->>F: full HTML from PageRenderer.astro (no-store, noindex)
+  F->>F: sync stylesheets, swap <main>, apply selection outline
+  F->>S: siteos:rendered {ok}
+  F->>S: siteos:selected {sectionId, fieldPath} on click
+```
+
+Both sides check `event.origin` against a configured origin and validate payloads with the shared
+Zod schemas. Nothing is evaluated; Astro escapes output. A reloaded iframe re-announces `ready` and is
+re-rendered immediately. Astro's CSRF origin check protects the render route. Details:
+[docs/architecture.md](docs/architecture.md).
+
+## Design tokens
+
+Theme tokens (`colors`, `typography`, `shape`, `layout`) compile to stable CSS variables such as
+`--color-primary`, `--font-heading`, `--radius-md`, `--container-width`, `--section-spacing`.
+Sections consume only these variables plus the `.section.theme-{light|surface|dark|brand}` surfaces.
+Switching a preset preserves every word of content. See [docs/design-system.md](docs/design-system.md).
+
+## Publishing lifecycle (designed; built in Milestone 3)
+
+```mermaid
+flowchart LR
+  E[Editor edits draft] --> A[Autosave with revision check]
+  A --> P{Publish}
+  P --> V[Validate every section]
+  V --> G[Resolve globals + content refs]
+  G --> I[Insert immutable page_version]
+  I --> U[Update published pointer]
+  U --> C[Invalidate affected cache keys]
+  C --> L[Audit log]
+  Pub[Public routes] --> I
+```
+
+## Asset upload (designed; built in Milestone 5)
+
+```mermaid
+sequenceDiagram
+  participant B as Browser (Web Worker)
+  participant W as Edge Worker
+  participant R2 as R2
+  participant DB as Postgres
+  B->>B: SHA-256 hash · resize to 1920/960/320 WebP
+  B->>W: request upload authorization (hash, mime, size)
+  W-->>B: duplicate? or signed PUT URLs per stable key
+  B->>R2: PUT /sites/{siteId}/assets/{assetId}/{variant}
+  B->>W: confirm
+  W->>DB: asset + variants + usage rows
+```
+
+## Database model, authorization, content API
+
+Milestones 2–3. Organizations own sites; every row carries `site_id`; PostgreSQL RLS enforces
+membership and role (Owner/Admin/Editor/Publisher/Viewer) server-side; drafts use revision numbers
+for optimistic concurrency; public endpoints only read published snapshots and set cache headers/ETags.
+See [docs/publishing.md](docs/publishing.md) and [docs/security.md](docs/security.md).
+
+## SEO, accessibility, performance
+
+- Per-page title/description/OG in the document; sitemap, robots, canonical and JSON-LD arrive in M7.
+- Renderer output is semantic HTML with one `h1` per page, skip link, focus styles, `alt` or
+  `decorative` on every image, lazy loading below the fold and `fetchpriority=high` for the first section's media.
+- Public pages ship **zero client JavaScript** in Milestone 1; React islands are reserved for genuinely interactive sections.
+- The Studio warns on missing alt text and on theme colors that fail WCAG AA contrast. Automated checks do not guarantee compliance.
+
+## Deployment & free-tier notes
+
+Studio → Cloudflare static assets · Renderer → Cloudflare Worker (Astro adapter) · Edge → Workers ·
+Assets → R2 · Content → Supabase. Costs stay low by rendering published snapshots, resizing images in
+the browser, and avoiding background jobs, polling and paid services. Limits and steps:
+[docs/deployment.md](docs/deployment.md).
+
+## Known limitations (Milestone 1)
+
+- Drafts persist to `localStorage`; no auth, organizations or database yet (M2).
+- No publish/version history yet — the public routes render the in-repo demo fixtures (M3).
+- Three section types; the ~20-section library is M4.
+- Images are URL references; upload, variants, usage graph and duplicate detection are M5.
+- Rich text is plain multi-paragraph text until Tiptap lands with a v1→v2 migration.
+- Responsive overrides are declared in the registry (`capabilities.responsive`) but not yet editable.
+
+## Roadmap
+
+| Milestone | Scope | Status |
+|-----------|-------|--------|
+| 1 Architecture foundation | monorepo, registry, 3 sections, tokens, live preview, editor | **done** |
+| 2 Database + auth | Supabase Auth, orgs/sites/memberships, RLS, autosave with revisions | next |
+| 3 Publishing | immutable versions, publish, rollback, public content API, content SDK | planned |
+| 4 Section library | ~20 sections on the registry | planned |
+| 5 Assets | R2 signed uploads, Web Worker resize, focal point, usage graph, dedupe | planned |
+| 6 Content + globals | reusable collections, navbar/footer globals, detach | planned |
+| 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox | planned |
+| 8 Business packs | packs, page recipes, presets, guided creation | planned |
+| 9 Hardening | a11y, performance, caching, mobile editor, health checks | planned |
+
+## Third-party assets
+
+Demo imagery under `apps/renderer/public/demo/` consists of original SVG illustrations created for
+this repository (no third-party licenses). The Studio self-hosts the Geist variable font
+(`@fontsource-variable/geist`, SIL OFL 1.1). Public sites use system font stacks only.

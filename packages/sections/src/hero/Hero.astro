@@ -1,0 +1,92 @@
+---
+import Button from '../primitives/Button.astro';
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { HeroProps } from './schema.ts';
+
+type Props = SectionRenderProps<HeroProps>;
+const { props: p, section, ctx } = Astro.props;
+const headingId = `${section.id}-heading`;
+const hasMedia = p.media !== null;
+const isBackground = p.variant === 'background' && hasMedia;
+const theme = isBackground ? 'dark' : p.theme;
+const alignment = p.variant === 'centered' ? 'center' : p.alignment;
+---
+<SectionFrame
+  section={section}
+  theme={theme}
+  spacing={p.spacing}
+  bleed={isBackground}
+  labelledBy={headingId}
+  class:list={[`v-${p.variant}`, `h-${p.height}`, `align-${alignment}`, `media-${p.mediaPosition}`, hasMedia ? 'has-media' : 'no-media']}
+>
+  {isBackground && p.media && (
+    <div class="bg" aria-hidden={p.media.decorative || !p.media.alt ? 'true' : undefined}>
+      <Picture image={p.media} priority={ctx.isFirst} sizes="100vw" field="media" />
+    </div>
+  )}
+  <div class:list={['inner', isBackground && 'container']}>
+    <div class="copy">
+      {p.eyebrow && <p class="eyebrow" data-field="eyebrow">{p.eyebrow}</p>}
+      <h1 id={headingId} class:list={[p.variant === 'editorial' ? 't-display' : 't-h1']} data-field="heading">{p.heading}</h1>
+      {p.description && <p class="t-lead muted" data-field="description">{p.description}</p>}
+      {(p.primaryCta || p.secondaryCta) && (
+        <div class="actions" data-field="primaryCta">
+          {p.primaryCta && <Button button={p.primaryCta} ctx={ctx} field="primaryCta" />}
+          {p.secondaryCta && <Button button={{ ...p.secondaryCta, style: p.secondaryCta.style === 'filled' ? 'outline' : p.secondaryCta.style }} ctx={ctx} field="secondaryCta" />}
+        </div>
+      )}
+    </div>
+    {hasMedia && !isBackground && p.media && (
+      <div class="media" data-field="media">
+        <Picture image={p.media} priority={ctx.isFirst} />
+      </div>
+    )}
+  </div>
+</SectionFrame>
+
+<style>
+  .inner { display: grid; gap: 2.5rem; align-items: center; }
+  .copy { display: grid; gap: 1.25rem; max-width: 40rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .align-center .copy { text-align: center; margin-inline: auto; }
+  .align-center .actions { justify-content: center; }
+  .media { aspect-ratio: 4 / 3; }
+
+  /* heights */
+  .h-compact .inner { min-height: 0; }
+  .h-standard .inner { min-height: 28rem; }
+  .h-large .inner { min-height: 40rem; }
+  .h-full .inner { min-height: calc(100svh - var(--section-spacing) * 2); }
+
+  /* split */
+  @media (min-width: 900px) {
+    .v-split.has-media .inner { grid-template-columns: 1fr 1fr; }
+    .v-split.media-left .media { order: -1; }
+  }
+
+  /* centered */
+  .v-centered .inner { justify-items: center; }
+  .v-centered .media { width: min(100%, 56rem); aspect-ratio: 16 / 9; }
+
+  /* background */
+  .v-background .bg { position: absolute; inset: 0; }
+  .v-background .bg :global(img) { width: 100%; height: 100%; object-fit: cover; }
+  .v-background .bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgb(0 0 0 / .72), rgb(0 0 0 / .35)); }
+  .v-background .inner { position: relative; padding-block: var(--section-spacing); }
+  .v-background .copy { color: #fff; --section-muted: rgb(255 255 255 / .82); }
+  .v-background .copy .eyebrow { color: #fff; }
+
+  /* editorial */
+  .v-editorial .inner { align-items: end; }
+  .v-editorial .copy { max-width: none; }
+  .v-editorial .media { aspect-ratio: 21 / 9; }
+  @media (min-width: 900px) {
+    .v-editorial.has-media .inner { grid-template-columns: 1fr; }
+    .v-editorial .copy { display: grid; grid-template-columns: 3fr 2fr; column-gap: 3rem; align-items: end; }
+    .v-editorial .copy .eyebrow { grid-column: 1 / -1; }
+    .v-editorial .copy h1 { grid-column: 1; }
+    .v-editorial .copy p:not(.eyebrow), .v-editorial .copy .actions { grid-column: 2; }
+  }
+</style>

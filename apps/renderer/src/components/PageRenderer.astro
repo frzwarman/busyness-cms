@@ -1,0 +1,18 @@
+---
+/**
+ * Renders a page document with a theme. Used by BOTH the public routes and the preview
+ * render route, so the live preview is production markup, not an approximation.
+ */
+import type { PageDocument, PageSummary, ThemeTokens } from '@siteos/schemas';
+import { createRenderContext } from '@siteos/sections';
+import SectionRenderer from './SectionRenderer.astro';
+
+interface Props { page: PageDocument; theme: ThemeTokens; pages: PageSummary[]; mode: 'public' | 'preview' }
+const { page, pages, mode } = Astro.props;
+const visible = page.sections.filter((s) => !s.hidden);
+---
+<main id="main">
+  {visible.map((section, i) => (
+    <SectionRenderer section={section} ctx={createRenderContext({ mode, pages, isFirst: i === 0 })} />
+  ))}
+</main>

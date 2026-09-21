@@ -1,0 +1,29 @@
+---
+import type { SectionInstance } from '@siteos/schemas';
+import { type RenderContext, type SectionRenderProps, registry } from '@siteos/sections';
+import { type RenderableType, sectionComponents } from '../sections/map.ts';
+
+/** Every section renderer shares this call signature; the union of concrete prop types is irrelevant here. */
+type AnySectionComponent = (_props: SectionRenderProps<Record<string, unknown>>) => unknown;
+
+interface Props { section: SectionInstance; ctx: RenderContext }
+const { section, ctx } = Astro.props;
+const result = registry.validate(section);
+const Component = (result.ok ? sectionComponents[section.type as RenderableType] : undefined) as AnySectionComponent | undefined;
+const problem = !result.ok ? result.errors.join(' ') : Component ? null : `No renderer for section type "${section.type}".`;
+---
+{Component && result.ok ? (
+  <Component props={result.section.props} section={result.section} ctx={ctx} />
+) : ctx.mode === 'preview' ? (
+  <section class="section spacing-compact preview-problem" data-section-id={section.id} data-section-type={section.type} role="alert">
+    <div class="container">
+      <p><strong>This section can't be shown.</strong> {problem}</p>
+      <p class="muted">It is kept in your draft so nothing is lost; fix or remove it before publishing.</p>
+    </div>
+  </section>
+) : null}
+
+<style>
+  .preview-problem { background: repeating-linear-gradient(45deg, #fff7ed, #fff7ed 10px, #ffedd5 10px, #ffedd5 20px); color: #7c2d12; }
+  .preview-problem p { margin: 0; }
+</style>
