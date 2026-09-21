@@ -1,4 +1,6 @@
-# Publishing model (Milestone 3 design)
+# Publishing model
+
+Drafts and revisions exist today (Milestone 2). Versions, publish and the public API are Milestone 3.
 
 ## Concepts
 
@@ -21,13 +23,14 @@
 "Restore" copies a historical version's document into the draft (new revision). Publishing that draft creates
 a new version; history stays linear and old versions stay intact.
 
-## Autosave and concurrency
+## Autosave and concurrency (built)
 
-`PATCH /pages/:id/draft { expectedRevision, document }` compares `expectedRevision` with the stored value and
-returns 409 on mismatch with the server document, so the Studio can show "Someone else changed this page" and
-never last-write-wins. The Studio already guards against out-of-order responses locally.
+`save_page_draft(p_page, p_expected_revision, p_document)` locks the draft row, compares the revision, and raises
+`revision_conflict` (SQLSTATE 40001, detail = current revision) on mismatch. `@siteos/db` maps that to
+`DraftConflictError`; the Studio stops autosaving, shows “Changed elsewhere” and offers Reload. The Studio also
+ignores save responses for documents that changed while the request was in flight.
 
-## Tables (Milestone 2–3)
+## Tables (Milestone 2 built: organizations, members, sites, site_members, pages, page_drafts, audit_logs)
 
 ```text
 organizations, organization_members

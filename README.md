@@ -9,7 +9,7 @@ lightweight **Astro** site. Users edit business intent (variant, alignment, them
 BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
 ```
 
-> **Status:** Milestone 1 (architecture foundation) is complete and verified end-to-end. See
+> **Status:** Milestones 1 (architecture foundation) and 2 (database + auth) are complete. See
 > [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
 
 ## What works today
@@ -25,14 +25,22 @@ BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS
 - Design tokens with six theme presets, curated system font stacks, WCAG contrast warnings.
 - Typed links (page id, URL, email, phone, anchor); image refs with alt text, decorative flag and focal point.
 - Demo site “Kopi Sudut” rendered at `/` and `/about` with semantic HTML, no client JavaScript.
+- Supabase Auth sign-in (password or magic link, no public sign-up UI), organizations → sites → pages with
+  row-level security, roles (owner/admin/editor/publisher/viewer), site creation with seeded demo pages.
+- Drafts persist to Postgres through `save_page_draft`, which rejects stale revisions instead of overwriting;
+  the Studio shows “Changed elsewhere” with a reload action.
 
 ## Quick start
 
 ```bash
 pnpm install
-cp .env.example .env            # defaults work for local development
+cp .env.example .env            # fill in the Supabase URL + publishable key
+supabase login && supabase link --project-ref <ref> && supabase db push   # apply migrations
 pnpm dev                        # Studio → http://localhost:5180 · Renderer → http://localhost:4321
 ```
+
+Create the first user in the Supabase dashboard (Authentication → Users → Add user, confirmed). Public
+self-registration should be disabled in Authentication → Sign In / Providers.
 
 Other commands:
 
@@ -53,6 +61,7 @@ apps/
   renderer/        Astro 7 (server output, Cloudflare adapter) — public site, preview shell, render route
   edge/            (M5) Cloudflare Worker + Hono: R2 upload authorization, form endpoints
 packages/
+  db/              Supabase client factory, generated Database types, typed repository helpers, RLS tests
   schemas/         Zod: page document, section envelope, links, images, theme tokens, preview protocol
   sections/        defineSection · SectionRegistry · migrations · per-section folders with .astro renderers
   design-system/   theme presets · token → CSS variables · base.css · contrast math
@@ -180,11 +189,16 @@ sequenceDiagram
   W->>DB: asset + variants + usage rows
 ```
 
-## Database model, authorization, content API
+## Database model and authorization
 
-Milestones 2–3. Organizations own sites; every row carries `site_id`; PostgreSQL RLS enforces
-membership and role (Owner/Admin/Editor/Publisher/Viewer) server-side; drafts use revision numbers
-for optimistic concurrency; public endpoints only read published snapshots and set cache headers/ETags.
+`supabase/migrations/20260921200000_core.sql`: `organizations`, `organization_members`, `sites` (theme JSONB),
+`site_members`, `pages`, `page_drafts` (one mutable draft per page with an integer `revision`), `audit_logs`.
+Every table carries `site_id` and has RLS enabled; `has_site_role(site_id, min_role)` ranks roles
+owner > admin > publisher > editor > viewer. Writes that need invariants go through `security definer` RPCs
+(`create_site`, `create_page`, `save_page_draft`, `update_site_theme`, `delete_page`) that re-check the
+caller's role. Direct inserts into `sites`, `site_members` (by non-admins) and `page_drafts` are impossible.
+Isolation and revision conflicts are covered by `packages/db/test/rls.test.ts`, which runs against the real
+project when `SUPABASE_SECRET_KEY` is set. Public content endpoints arrive in Milestone 3.
 See [docs/publishing.md](docs/publishing.md) and [docs/security.md](docs/security.md).
 
 ## SEO, accessibility, performance
@@ -204,8 +218,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 
 ## Known limitations (Milestone 1)
 
-- Drafts persist to `localStorage`; no auth, organizations or database yet (M2).
-- No publish/version history yet — the public routes render the in-repo demo fixtures (M3).
+- No publish/version history yet — the public routes still render the in-repo demo fixtures (M3).
+- Invitations UI is not built; members are added via SQL/dashboard for now (owners/admins may insert `site_members`).
 - Three section types; the ~20-section library is M4.
 - Images are URL references; upload, variants, usage graph and duplicate detection are M5.
 - Rich text is plain multi-paragraph text until Tiptap lands with a v1→v2 migration.
@@ -216,8 +230,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 | Milestone | Scope | Status |
 |-----------|-------|--------|
 | 1 Architecture foundation | monorepo, registry, 3 sections, tokens, live preview, editor | **done** |
-| 2 Database + auth | Supabase Auth, orgs/sites/memberships, RLS, autosave with revisions | next |
-| 3 Publishing | immutable versions, publish, rollback, public content API, content SDK | planned |
+| 2 Database + auth | Supabase Auth, orgs/sites/memberships, RLS, autosave with revisions | **done** |
+| 3 Publishing | immutable versions, publish, rollback, public content API, content SDK | next |
 | 4 Section library | ~20 sections on the registry | planned |
 | 5 Assets | R2 signed uploads, Web Worker resize, focal point, usage graph, dedupe | planned |
 | 6 Content + globals | reusable collections, navbar/footer globals, detach | planned |

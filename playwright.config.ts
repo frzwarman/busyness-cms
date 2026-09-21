@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import 'dotenv/config';
 
 /** E2E against the local Studio + renderer dev servers. Both are started automatically. */
 export default defineConfig({

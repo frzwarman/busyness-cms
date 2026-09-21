@@ -5,20 +5,30 @@ import {
   Check,
   ExternalLink,
   Loader2,
+  LogOut,
   Monitor,
   Moon,
   PanelLeft,
   PanelRight,
   Redo2,
+  RefreshCw,
   Smartphone,
   Sun,
   Tablet,
   Undo2,
+  UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { signOut } from '@/lib/auth';
 import { PREVIEW_ORIGIN } from '@/lib/preview-bridge';
 import { useStudioTheme } from '@/lib/studio-theme';
 import { cn } from '@/lib/utils';
@@ -29,6 +39,7 @@ const saveLabels = {
   unsaved: 'Unsaved changes',
   saving: 'Saving…',
   error: 'Failed to save',
+  conflict: 'Changed elsewhere',
 } as const;
 
 export function TopBar({
@@ -38,7 +49,8 @@ export function TopBar({
   onOpenLeft: () => void;
   onOpenRight: () => void;
 }) {
-  const { state, dispatch, saveStatus, device, setDevice, siteName } = useEditor();
+  const { state, dispatch, saveStatus, saveError, device, setDevice, siteName, canEdit } =
+    useEditor();
   const { dark, toggle } = useStudioTheme();
 
   return (
@@ -87,7 +99,11 @@ export function TopBar({
       </div>
 
       <div className="ml-auto flex items-center gap-1">
-        <SaveIndicator status={saveStatus} />
+        {canEdit ? (
+          <SaveIndicator status={saveStatus} error={saveError} />
+        ) : (
+          <span className="text-xs text-muted-foreground">Read-only</span>
+        )}
         <Separator orientation="vertical" className="mx-1 h-5" />
         <Tooltip>
           <TooltipTrigger asChild>
@@ -139,6 +155,21 @@ export function TopBar({
             Open site <ExternalLink data-icon="inline-end" />
           </a>
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Account">
+              <UserRound />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link to="/new-site">Create another site</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void signOut()}>
+              <LogOut /> Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button
           variant="ghost"
           size="icon"
@@ -153,26 +184,39 @@ export function TopBar({
   );
 }
 
-function SaveIndicator({ status }: { status: keyof typeof saveLabels }) {
+function SaveIndicator({
+  status,
+  error,
+}: {
+  status: keyof typeof saveLabels;
+  error: string | null;
+}) {
   const Icon =
     status === 'saving'
       ? Loader2
-      : status === 'error'
+      : status === 'error' || status === 'conflict'
         ? AlertTriangle
         : status === 'saved'
           ? Check
           : null;
+  const bad = status === 'error' || status === 'conflict';
   return (
     <output
       aria-live="polite"
       className={cn(
         'hidden items-center gap-1.5 text-xs sm:flex',
-        status === 'error' ? 'text-destructive' : 'text-muted-foreground',
+        bad ? 'text-destructive' : 'text-muted-foreground',
       )}
+      title={error ?? undefined}
     >
       {Icon && <Icon className={cn('size-3.5', status === 'saving' && 'animate-spin')} />}
       {status === 'unsaved' && <span className="size-1.5 rounded-full bg-amber-500" />}
       {saveLabels[status]}
+      {status === 'conflict' && (
+        <Button size="xs" variant="outline" onClick={() => window.location.reload()}>
+          <RefreshCw /> Reload
+        </Button>
+      )}
     </output>
   );
 }

@@ -1,3 +1,4 @@
+import { DraftConflictError } from '@siteos/db';
 import {
   createEditorReducer,
   createEditorState,
@@ -19,10 +20,17 @@ import {
   useRef,
   useState,
 } from 'react';
-import { savePageDraft, saveThemeDraft } from '@/lib/draft-store';
 import { useDebouncedEffect } from '@/lib/use-debounced-effect';
 
-export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error';
+export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error' | 'conflict';
+
+/** How the editor persists. Injected so the Studio can back it with Supabase and tests with fakes. */
+export type EditorPersistence = {
+  initialRevision: number;
+  /** Resolve with the new revision; throw DraftConflictError (or any error) to surface a failure. */
+  savePage: (document: PageDocument, expectedRevision: number) => Promise<number>;
+  saveTheme: (theme: ThemeTokens) => Promise<void>;
+};
 export type Device = 'desktop' | 'tablet' | 'mobile';
 export type FocusRequest = { sectionId: string; fieldPath: string | null; nonce: number };
 
@@ -34,7 +42,10 @@ type EditorContextValue = {
   pages: PageSummary[];
   siteName: string;
   saveStatus: SaveStatus;
+  saveError: string | null;
   saveNow: () => void;
+  siteId: string;
+  canEdit: boolean;
   device: Device;
   setDevice: (d: Device) => void;
   focusRequest: FocusRequest | null;
@@ -51,12 +62,18 @@ export function EditorProvider({
   theme: initialTheme,
   pages,
   siteName,
+  siteId,
+  persistence,
+  canEdit = true,
   children,
 }: {
   page: PageDocument;
   theme: ThemeTokens;
   pages: PageSummary[];
   siteName: string;
+  siteId: string;
+  persistence: EditorPersistence;
+  canEdit?: boolean;
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, page, createEditorState);
@@ -65,8 +82,10 @@ export function EditorProvider({
   const [device, setDevice] = useState<Device>('desktop');
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const inflight = useRef<PageDocument | null>(null);
+  const revision = useRef(persistence.initialRevision);
 
   // Reload when navigating to another page id.
   useEffect(() => {
@@ -75,26 +94,36 @@ export function EditorProvider({
 
   const save = useCallback(async () => {
     const doc = state.document;
-    if (inflight.current === doc) return;
+    if (!canEdit || inflight.current === doc || saveStatus === 'conflict') return;
     inflight.current = doc;
     setSaveStatus('saving');
     try {
-      await savePageDraft(doc);
+      const next = await persistence.savePage(doc, revision.current);
+      revision.current = next;
       // Only mark saved if nothing changed while the request was in flight (no out-of-order overwrite).
       if (inflight.current === doc) {
         dispatch({ type: 'markSaved' });
         setSaveStatus('saved');
-        void queryClient.invalidateQueries({ queryKey: ['site'] });
+        setSaveError(null);
+        void queryClient.invalidateQueries({ queryKey: ['pages', siteId] });
       }
-    } catch {
-      setSaveStatus('error');
+    } catch (err) {
+      if (err instanceof DraftConflictError) {
+        // Never last-write-wins: stop autosaving and ask the user to reload.
+        setSaveStatus('conflict');
+        setSaveError(err.message);
+      } else {
+        setSaveStatus('error');
+        setSaveError(err instanceof Error ? err.message : 'Failed to save');
+      }
     } finally {
       if (inflight.current === doc) inflight.current = null;
     }
-  }, [state.document, queryClient]);
+  }, [state.document, queryClient, persistence, siteId, canEdit, saveStatus]);
 
   useEffect(() => {
-    if (state.dirty && saveStatus !== 'saving') setSaveStatus('unsaved');
+    if (state.dirty && saveStatus !== 'saving' && saveStatus !== 'conflict')
+      setSaveStatus('unsaved');
   }, [state.dirty, saveStatus]);
 
   useDebouncedEffect(
@@ -118,10 +147,13 @@ export function EditorProvider({
   }, []);
   useDebouncedEffect(
     () => {
-      if (theme !== initialTheme)
-        void saveThemeDraft(theme).then(() =>
-          queryClient.invalidateQueries({ queryKey: ['site'] }),
-        );
+      if (theme !== initialTheme && canEdit)
+        void persistence
+          .saveTheme(theme)
+          .then(() => queryClient.invalidateQueries({ queryKey: ['sites'] }))
+          .catch((err: unknown) =>
+            setSaveError(err instanceof Error ? err.message : 'Failed to save brand settings'),
+          );
     },
     [theme],
     600,
@@ -159,7 +191,10 @@ export function EditorProvider({
       pages,
       siteName,
       saveStatus,
+      saveError,
       saveNow: () => void save(),
+      siteId,
+      canEdit,
       device,
       setDevice,
       focusRequest,
@@ -174,7 +209,10 @@ export function EditorProvider({
       pages,
       siteName,
       saveStatus,
+      saveError,
       save,
+      siteId,
+      canEdit,
       device,
       focusRequest,
       requestFocus,

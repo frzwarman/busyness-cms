@@ -16,6 +16,12 @@ function wrap(children: ReactNode) {
         theme={demoTheme}
         pages={demoPages}
         siteName="Test"
+        siteId="site_test"
+        persistence={{
+          initialRevision: 1,
+          savePage: async (_d, rev) => rev + 1,
+          saveTheme: async () => {},
+        }}
       >
         {children}
       </EditorProvider>

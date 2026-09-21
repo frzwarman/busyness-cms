@@ -1,4 +1,5 @@
-import { slugSchema } from '@siteos/schemas';
+import { createPage } from '@siteos/db';
+import { pageDocumentSchema, slugSchema } from '@siteos/schemas';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { FileText, Plus } from 'lucide-react';
@@ -6,12 +7,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createPageDraft } from '@/lib/draft-store';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useEditor } from './EditorProvider';
 
 export function PagesPanel() {
-  const { pages, state } = useEditor();
+  const { pages, state, siteId, canEdit } = useEditor();
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,13 +28,21 @@ export function PagesPanel() {
     const check = slugSchema.safeParse(slug);
     if (!title.trim() || !check.success)
       return setError('Give the page a name using letters or numbers.');
+    if (pages.some((p) => p.slug === slug))
+      return setError(`A page with the address ${slug} already exists.`);
     try {
-      const page = await createPageDraft(title.trim(), slug);
-      await qc.invalidateQueries({ queryKey: ['site'] });
+      const doc = pageDocumentSchema.parse({
+        id: 'pending',
+        slug,
+        title: title.trim(),
+        sections: [],
+      });
+      const pageId = await createPage(supabase, siteId, doc);
+      await qc.invalidateQueries({ queryKey: ['pages', siteId] });
       setCreating(false);
       setTitle('');
       setError(null);
-      void navigate({ to: '/pages/$pageId', params: { pageId: page.id } });
+      void navigate({ to: '/sites/$siteId/pages/$pageId', params: { siteId, pageId } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create the page.');
     }
@@ -45,7 +54,12 @@ export function PagesPanel() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Pages
         </h2>
-        <Button size="sm" variant="outline" onClick={() => setCreating((c) => !c)}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!canEdit}
+          onClick={() => setCreating((c) => !c)}
+        >
           <Plus data-icon="inline-start" /> New page
         </Button>
       </div>
@@ -90,8 +104,8 @@ export function PagesPanel() {
         {pages.map((p) => (
           <li key={p.id}>
             <Link
-              to="/pages/$pageId"
-              params={{ pageId: p.id }}
+              to="/sites/$siteId/pages/$pageId"
+              params={{ siteId, pageId: p.id }}
               className={cn(
                 'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
                 p.id === state.document.id && 'bg-muted font-medium',

@@ -20,10 +20,17 @@
 - Internal links reference page ids; a missing target renders as a non-link with a title, never a broken href.
 - Astro escapes all interpolated text. Rich text (Tiptap, later) will be sanitized to an allowlist before render.
 
-## Planned (Milestones 2–5)
+## Database (built)
 
-- Supabase Auth, self-registration disabled by default.
-- RLS on every table keyed by `site_id` + membership role; tested with cross-site access attempts.
+- Supabase Auth; the Studio has no sign-up form and magic links use `shouldCreateUser: false`. Disable
+  "Allow new users to sign up" in the Supabase dashboard as well: the client cannot enforce that.
+- RLS on every table, keyed by `site_id` + membership role via `has_site_role()`. Mutations with invariants are
+  `security definer` RPCs that re-check the role; direct inserts into `sites`/`page_drafts` have no policy.
+- Only the publishable key ships to browsers. `SUPABASE_SECRET_KEY` is used by tests and server-side code only.
+- `packages/db/test/rls.test.ts` creates two users and asserts cross-site reads/writes fail through tables and RPCs.
+
+## Planned (Milestones 3–5)
+
 - Signed R2 uploads via the edge worker; MIME sniffing; SVG sanitization.
 - Form endpoints: schema validation, honeypot, timestamp check, size/field limits, rate limiting.
 - Audit logs without secrets or raw submission bodies.

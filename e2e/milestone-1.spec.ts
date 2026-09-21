@@ -2,16 +2,26 @@ import { expect, type FrameLocator, type Page, test } from '@playwright/test';
 
 /** The Milestone 1 definition of done, exercised for real: add, reorder, edit, and see the same content in the live preview. */
 
+const email = process.env.E2E_EMAIL;
+const password = process.env.E2E_PASSWORD;
+test.skip(
+  !email || !password,
+  'Set E2E_EMAIL and E2E_PASSWORD in .env to run the editor flows against Supabase.',
+);
+
+/** Sign in, open the first site's home page, and reset the hero heading so tests start from known content. */
 async function openEditor(page: Page): Promise<FrameLocator> {
-  // Reset the demo draft once per test (not on reloads, which must keep the saved draft).
-  await page.addInitScript(() => {
-    if (!sessionStorage.getItem('siteos:e2e-reset')) {
-      localStorage.removeItem('siteos:draft:v1');
-      sessionStorage.setItem('siteos:e2e-reset', '1');
-    }
-  });
-  await page.goto('/');
-  await expect(page).toHaveURL(/\/pages\/page_home/);
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(email ?? '');
+  await page.getByLabel('Password').fill(password ?? '');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/sites\/[^/]+\/pages\/[^/]+/, { timeout: 30_000 });
+  const heading = page.getByLabel('Heading', { exact: true });
+  await expect(heading).toBeVisible();
+  if ((await heading.inputValue()) !== 'Coffee worth slowing down for') {
+    await heading.fill('Coffee worth slowing down for');
+    await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
+  }
   const preview = page.frameLocator('iframe[title="Live preview of the page"]');
   await expect(preview.locator('[data-section-type="hero"] h1')).toHaveText(
     'Coffee worth slowing down for',
@@ -24,7 +34,7 @@ test('edits appear live in the preview and persist as a draft', async ({ page })
   const heading = page.getByLabel('Heading', { exact: true });
   await heading.fill('Coffee, but slower');
   await expect(preview.locator('[data-section-type="hero"] h1')).toHaveText('Coffee, but slower');
-  await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
 
   await page.reload();
   await expect(preview.locator('[data-section-type="hero"] h1')).toHaveText('Coffee, but slower');
