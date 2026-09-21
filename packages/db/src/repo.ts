@@ -252,3 +252,151 @@ export async function getPublishState(db: Db, pageId: string): Promise<PublishSt
     publishedDocument: pageDocumentSchema.parse(version.document),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Assets (Milestone 5)
+// ---------------------------------------------------------------------------
+export type AssetVariant = {
+  name: 'original' | '1920' | '960' | '320';
+  key: string;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+  size: number;
+};
+export type Asset = {
+  id: string;
+  siteId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+  sha256: string;
+  alt: string;
+  decorative: boolean;
+  caption: string;
+  tags: string[];
+  focalX: number;
+  focalY: number;
+  createdAt: string;
+  variants: AssetVariant[];
+};
+export type AssetUsage = {
+  pageId: string;
+  pageTitle: string;
+  pageSlug: string;
+  sectionId: string;
+  kind: 'draft' | 'published';
+};
+
+export class AssetInUseError extends Error {
+  constructor(public readonly usages: number) {
+    super(
+      `This asset is used in ${usages} place${usages === 1 ? '' : 's'} and cannot be deleted yet.`,
+    );
+    this.name = 'AssetInUseError';
+  }
+}
+
+export async function listAssets(db: Db, siteId: string): Promise<Asset[]> {
+  const rows = unwrap(
+    await db
+      .from('assets')
+      .select(
+        'id, site_id, filename, mime_type, size, width, height, sha256, alt, decorative, caption, tags, focal_x, focal_y, created_at, asset_variants(name, key, mime_type, width, height, size)',
+      )
+      .eq('site_id', siteId)
+      .order('created_at', { ascending: false }),
+    'Loading assets',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    siteId: r.site_id,
+    filename: r.filename,
+    mimeType: r.mime_type,
+    size: r.size,
+    width: r.width,
+    height: r.height,
+    sha256: r.sha256,
+    alt: r.alt,
+    decorative: r.decorative,
+    caption: r.caption,
+    tags: r.tags,
+    focalX: r.focal_x,
+    focalY: r.focal_y,
+    createdAt: r.created_at,
+    variants: r.asset_variants.map((v) => ({
+      name: v.name as AssetVariant['name'],
+      key: v.key,
+      mimeType: v.mime_type,
+      width: v.width,
+      height: v.height,
+      size: v.size,
+    })),
+  }));
+}
+
+export async function listAssetUsages(db: Db, assetId: string): Promise<AssetUsage[]> {
+  const rows = unwrap(
+    await db
+      .from('asset_usages')
+      .select('page_id, section_id, kind, pages(title, slug)')
+      .eq('asset_id', assetId),
+    'Loading asset usage',
+  );
+  return rows.map((r) => {
+    const page = Array.isArray(r.pages) ? r.pages[0] : r.pages;
+    return {
+      pageId: r.page_id,
+      sectionId: r.section_id,
+      kind: r.kind as AssetUsage['kind'],
+      pageTitle: page?.title ?? 'Unknown page',
+      pageSlug: page?.slug ?? '',
+    };
+  });
+}
+
+/** Usage counts for many assets at once (for the browser's "Used in N places" badges). */
+export async function countAssetUsages(db: Db, siteId: string): Promise<Record<string, number>> {
+  const rows = unwrap(
+    await db.from('asset_usages').select('asset_id, page_id, section_id').eq('site_id', siteId),
+    'Loading asset usage',
+  );
+  const seen = new Set<string>();
+  const counts: Record<string, number> = {};
+  for (const r of rows) {
+    const k = `${r.asset_id}:${r.page_id}:${r.section_id}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    counts[r.asset_id] = (counts[r.asset_id] ?? 0) + 1;
+  }
+  return counts;
+}
+
+export async function updateAsset(
+  db: Db,
+  asset: Pick<Asset, 'id' | 'alt' | 'decorative' | 'caption' | 'tags' | 'focalX' | 'focalY'>,
+): Promise<void> {
+  const { error } = await db.rpc('update_asset', {
+    p_id: asset.id,
+    p_alt: asset.alt,
+    p_decorative: asset.decorative,
+    p_caption: asset.caption,
+    p_tags: asset.tags,
+    p_focal_x: asset.focalX,
+    p_focal_y: asset.focalY,
+  });
+  if (error) throw new Error(`Saving asset details: ${error.message}`);
+}
+
+/** Deletes the metadata row (refused while in use unless forced by an admin) and returns the R2 keys to remove. */
+export async function deleteAsset(db: Db, assetId: string, force = false): Promise<string[]> {
+  const { data, error } = await db.rpc('delete_asset', { p_id: assetId, p_force: force });
+  if (error) {
+    if (error.message.includes('asset_in_use'))
+      throw new AssetInUseError(Number(error.details) || 1);
+    throw new Error(`Deleting asset: ${error.message}`);
+  }
+  return data ?? [];
+}

@@ -1,11 +1,13 @@
 import type { ImageRef } from '@siteos/schemas';
-import { AlertTriangle, ImagePlus, Trash2 } from 'lucide-react';
+import { AlertTriangle, ImagePlus, Images, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PREVIEW_ORIGIN } from '@/lib/preview-bridge';
+import { imageRefFromAsset } from '../assets/AssetLibrary';
+import { AssetPickerDialog } from '../assets/AssetPickerDialog';
 
 /**
  * Image reference editor: URL, alt text, decorative flag, focal point.
@@ -21,27 +23,28 @@ export function ImageControl({
   onChange: (v: ImageRef | null) => void;
 }) {
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const picker = (
+    <AssetPickerDialog
+      open={pickerOpen}
+      onOpenChange={setPickerOpen}
+      onPick={(a) => onChange(imageRefFromAsset(a))}
+    />
+  );
   if (!value) {
     return (
-      <Button
-        id={id}
-        variant="outline"
-        size="sm"
-        className="w-full justify-start"
-        onClick={() =>
-          onChange({
-            src: '/demo/cafe-hero.svg',
-            alt: '',
-            decorative: false,
-            focalX: 0.5,
-            focalY: 0.5,
-            width: 1600,
-            height: 1200,
-          })
-        }
-      >
-        <ImagePlus data-icon="inline-start" /> Add image
-      </Button>
+      <>
+        <Button
+          id={id}
+          variant="outline"
+          size="sm"
+          className="w-full justify-start"
+          onClick={() => setPickerOpen(true)}
+        >
+          <ImagePlus data-icon="inline-start" /> Choose image
+        </Button>
+        {picker}
+      </>
     );
   }
   const src = value.src.startsWith('/') ? `${PREVIEW_ORIGIN}${value.src}` : value.src;
@@ -96,6 +99,15 @@ export function ImageControl({
         Click the image to set the focal point that stays visible when it is cropped.
         {natural && ` ${natural.w} × ${natural.h}px`}
       </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="justify-start"
+        onClick={() => setPickerOpen(true)}
+      >
+        <Images data-icon="inline-start" /> Replace from library
+      </Button>
+      {picker}
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-src`} className="text-xs">
           Image URL

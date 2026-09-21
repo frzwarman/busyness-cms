@@ -115,6 +115,8 @@ export function EditorProvider({
           setSaveStatus('saved');
           setSaveError(null);
           void queryClient.invalidateQueries({ queryKey: ['pages', siteId] });
+          // Saving rewrites asset usages server-side; refresh the "Used in N" badges.
+          void queryClient.invalidateQueries({ queryKey: ['asset-usages', siteId] });
         } else {
           setSaveStatus('unsaved'); // newer edits exist; the debounced effect saves them next
         }

@@ -8,6 +8,158 @@ export type Database = {
   };
   public: {
     Tables: {
+      asset_usages: {
+        Row: {
+          asset_id: string;
+          kind: string;
+          page_id: string;
+          section_id: string;
+          site_id: string;
+        };
+        Insert: {
+          asset_id: string;
+          kind: string;
+          page_id: string;
+          section_id: string;
+          site_id: string;
+        };
+        Update: {
+          asset_id?: string;
+          kind?: string;
+          page_id?: string;
+          section_id?: string;
+          site_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'asset_usages_asset_id_fkey';
+            columns: ['asset_id'];
+            isOneToOne: false;
+            referencedRelation: 'assets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'asset_usages_page_id_fkey';
+            columns: ['page_id'];
+            isOneToOne: false;
+            referencedRelation: 'pages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'asset_usages_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      asset_variants: {
+        Row: {
+          asset_id: string;
+          height: number | null;
+          key: string;
+          mime_type: string;
+          name: string;
+          size: number;
+          width: number | null;
+        };
+        Insert: {
+          asset_id: string;
+          height?: number | null;
+          key: string;
+          mime_type: string;
+          name: string;
+          size: number;
+          width?: number | null;
+        };
+        Update: {
+          asset_id?: string;
+          height?: number | null;
+          key?: string;
+          mime_type?: string;
+          name?: string;
+          size?: number;
+          width?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'asset_variants_asset_id_fkey';
+            columns: ['asset_id'];
+            isOneToOne: false;
+            referencedRelation: 'assets';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      assets: {
+        Row: {
+          alt: string;
+          caption: string;
+          created_at: string;
+          decorative: boolean;
+          filename: string;
+          focal_x: number;
+          focal_y: number;
+          height: number | null;
+          id: string;
+          mime_type: string;
+          sha256: string;
+          site_id: string;
+          size: number;
+          tags: string[];
+          updated_at: string;
+          uploaded_by: string | null;
+          width: number | null;
+        };
+        Insert: {
+          alt?: string;
+          caption?: string;
+          created_at?: string;
+          decorative?: boolean;
+          filename: string;
+          focal_x?: number;
+          focal_y?: number;
+          height?: number | null;
+          id?: string;
+          mime_type: string;
+          sha256: string;
+          site_id: string;
+          size: number;
+          tags?: string[];
+          updated_at?: string;
+          uploaded_by?: string | null;
+          width?: number | null;
+        };
+        Update: {
+          alt?: string;
+          caption?: string;
+          created_at?: string;
+          decorative?: boolean;
+          filename?: string;
+          focal_x?: number;
+          focal_y?: number;
+          height?: number | null;
+          id?: string;
+          mime_type?: string;
+          sha256?: string;
+          site_id?: string;
+          size?: number;
+          tags?: string[];
+          updated_at?: string;
+          uploaded_by?: string | null;
+          width?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'assets_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       audit_logs: {
         Row: {
           action: string;
@@ -318,6 +470,20 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      create_asset: {
+        Args: {
+          p_filename: string;
+          p_height: number;
+          p_id: string;
+          p_mime: string;
+          p_sha256: string;
+          p_site: string;
+          p_size: number;
+          p_variants: Json;
+          p_width: number;
+        };
+        Returns: string;
+      };
       create_page: {
         Args: {
           p_document: Json;
@@ -335,6 +501,10 @@ export type Database = {
           p_theme: Json;
         };
         Returns: string;
+      };
+      delete_asset: {
+        Args: { p_force?: boolean; p_id: string };
+        Returns: string[];
       };
       delete_page: { Args: { p_page: string }; Returns: undefined };
       get_published_page: {
@@ -356,6 +526,10 @@ export type Database = {
           version_id: string;
         }[];
       };
+      refresh_asset_usages: {
+        Args: { p_document: Json; p_kind: string; p_page: string };
+        Returns: undefined;
+      };
       restore_version: { Args: { p_version: string }; Returns: number };
       role_rank: {
         Args: { r: Database['public']['Enums']['member_role'] };
@@ -370,6 +544,18 @@ export type Database = {
         Returns: Database['public']['Enums']['member_role'];
       };
       unpublish_page: { Args: { p_page: string }; Returns: undefined };
+      update_asset: {
+        Args: {
+          p_alt: string;
+          p_caption: string;
+          p_decorative: boolean;
+          p_focal_x: number;
+          p_focal_y: number;
+          p_id: string;
+          p_tags: string[];
+        };
+        Returns: undefined;
+      };
       update_site_theme: {
         Args: { p_site: string; p_theme: Json };
         Returns: undefined;

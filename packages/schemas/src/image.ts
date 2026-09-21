@@ -13,6 +13,11 @@ export const imageRefSchema = z.object({
   height: z.number().int().positive().optional(),
   focalX: z.number().min(0).max(1).default(0.5),
   focalY: z.number().min(0).max(1).default(0.5),
+  /** Resized variants (width → URL) from the asset pipeline; the renderer builds srcset from these. */
+  sources: z
+    .array(z.object({ width: z.number().int().positive(), src: z.string().min(1) }))
+    .max(6)
+    .optional(),
 });
 export type ImageRef = z.infer<typeof imageRefSchema>;
 

@@ -29,7 +29,16 @@
 - Only the publishable key ships to browsers. `SUPABASE_SECRET_KEY` is used by tests and server-side code only.
 - `packages/db/test/rls.test.ts` creates two users and asserts cross-site reads/writes fail through tables and RPCs.
 
-## Planned (Milestones 3–5)
+## Assets (built)
+
+- No R2 credentials in the browser. Uploads go through the worker with the user's Supabase token; the worker checks
+  the site role, issues an HMAC ticket (15 min) that fixes site, asset id, user and variant names, and derives object
+  keys from ids only.
+- Declared MIME types are verified against magic bytes; SVG is refused; 25 MB cap; only JPEG/PNG/WebP/GIF/PDF.
+- Metadata is written by `create_asset()` under RLS; if that fails, the worker deletes the bytes it just stored.
+- The worker's CORS allows only the configured Studio origin.
+
+## Planned
 
 - Signed R2 uploads via the edge worker; MIME sniffing; SVG sanitization.
 - Form endpoints: schema validation, honeypot, timestamp check, size/field limits, rate limiting.

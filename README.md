@@ -9,7 +9,7 @@ lightweight **Astro** site. Users edit business intent (variant, alignment, them
 BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
 ```
 
-> **Status:** Milestones 1–4 are complete: architecture foundation, database + auth, publishing, and a 23-type section library. See
+> **Status:** Milestones 1–5 are complete: architecture foundation, database + auth, publishing, a 23-type section library, and the asset system. See
 > [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
 
 ## What works today
@@ -19,6 +19,9 @@ BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS
 - 23 section types with 61 layout variants, all on the registry: Navigation bar, Announcement bar, Hero, Rich text,
   Image + Text, Quote, Statistics, Features (incl. bento), Services, Process, Logo cloud, Testimonials, Gallery, Video,
   Call to action, FAQ, Opening hours, Locations, Menu, Pricing, Team, Portfolio, Footer.
+- Asset system: browser-side SHA-256 and Web Worker resizing (1920/960/320 WebP, never upscaled), signed-ticket uploads
+  through a Cloudflare Worker into R2, magic-byte type checks, duplicate detection, asset browser with search/filters,
+  alt text + decorative flag + focal point + tags, usage graph ("Used in 3 places"), delete protection, `srcset` output.
 - Constrained rich text (Tiptap in the Studio, a whitelisted ProseMirror JSON subset on disk, HTML generated from the
   tree — never sanitized HTML). Repeatable lists with nested lists, a curated inline-SVG icon set, privacy-enhanced
   video embeds, no-JavaScript mobile menu and FAQ accordion.
@@ -68,7 +71,7 @@ pnpm check        # all of the above except e2e
 apps/
   studio/          React 19 · Vite · Tailwind 4 · shadcn/ui · TanStack Router & Query · dnd-kit
   renderer/        Astro 7 (server output, Cloudflare adapter) — public site, preview shell, render route
-  edge/            (M5) Cloudflare Worker + Hono: R2 upload authorization, form endpoints
+  edge/            Cloudflare Worker + Hono: ticketed R2 uploads, asset serving (forms later)
 packages/
   db/              Supabase client factory, generated Database types, typed repository helpers, RLS tests
   schemas/         Zod: page document, section envelope, links, images, theme tokens, preview protocol
@@ -182,7 +185,7 @@ flowchart LR
   Pub[Public routes] --> I
 ```
 
-## Asset upload (designed; built in Milestone 5)
+## Asset upload
 
 ```mermaid
 sequenceDiagram
@@ -232,7 +235,7 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 - Public site routing is path-based (`/s/<site-slug>/…`) or a single default site via `DEFAULT_SITE_SLUG`;
   platform subdomains are supported when `PUBLIC_PLATFORM_DOMAIN` is set, custom domains are not yet.
 - Invitations UI is not built; members are added via SQL/dashboard for now (owners/admins may insert `site_members`).
-- Images are URL references; upload, variants, usage graph and duplicate detection are M5.
+- R2 is not yet enabled on the target Cloudflare account; the worker is verified against Wrangler's local R2 simulation. SVG uploads are refused until a sanitizer exists.
 - Testimonials, logos, team etc. are edited inline per section; the shared content library (edit once, show everywhere) is M6.
 - Responsive overrides are declared in the registry (`capabilities.responsive`) but not yet editable.
 
@@ -244,8 +247,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 | 2 Database + auth | Supabase Auth, orgs/sites/memberships, RLS, autosave with revisions | **done** |
 | 3 Publishing | immutable versions, publish, rollback, public content API, content SDK | **done** |
 | 4 Section library | 23 sections on the registry | **done** |
-| 5 Assets | R2 signed uploads, Web Worker resize, focal point, usage graph, dedupe | next |
-| 6 Content + globals | reusable collections, navbar/footer globals, detach | planned |
+| 5 Assets | ticketed R2 uploads, Web Worker resize, focal point, usage graph, dedupe | **done** |
+| 6 Content + globals | reusable collections, navbar/footer globals, detach | next |
 | 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox | planned |
 | 8 Business packs | packs, page recipes, presets, guided creation | planned |
 | 9 Hardening | a11y, performance, caching, mobile editor, health checks | planned |

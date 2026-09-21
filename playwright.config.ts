@@ -16,8 +16,14 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'pnpm --filter @siteos/renderer dev',
+      command: 'pnpm --filter @siteos/renderer exec astro dev --port 4321 --ignore-lock',
       url: 'http://localhost:4321/preview',
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+    {
+      command: 'pnpm --filter @siteos/edge dev',
+      url: 'http://localhost:8787/health',
       reuseExistingServer: true,
       timeout: 120_000,
     },

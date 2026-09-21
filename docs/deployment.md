@@ -13,6 +13,8 @@ pnpm dev
 | Studio | http://localhost:5180 | `VITE_PREVIEW_ORIGIN=http://localhost:4321` |
 | Renderer | http://localhost:4321 | `PUBLIC_STUDIO_ORIGIN=http://localhost:5180` |
 
+| Edge worker | http://localhost:8787 | `apps/edge/.dev.vars` (copy from `.dev.vars.example`), `VITE_EDGE_ORIGIN`, `VITE_ASSET_BASE_URL` |
+
 Both origins must match exactly or the preview refuses messages by design.
 
 ## Production targets
@@ -21,8 +23,8 @@ Both origins must match exactly or the preview refuses messages by design.
 |-------|-------|---------|
 | Studio | Cloudflare Workers static assets (or Pages) | `pnpm --filter @siteos/studio build` → `apps/studio/dist` |
 | Renderer | Cloudflare Worker via `@astrojs/cloudflare` | `pnpm --filter @siteos/renderer build` → `apps/renderer/dist` then `wrangler deploy` |
-| Edge (M5) | Cloudflare Worker | `wrangler deploy` |
-| Assets (M5) | R2 bucket | created once in the dashboard |
+| Edge | Cloudflare Worker | `cd apps/edge && pnpm deploy` (after `wrangler secret put UPLOAD_SIGNING_SECRET`) |
+| Assets | R2 bucket `siteos-assets` | enable R2 in the dashboard, then `wrangler r2 bucket create siteos-assets` |
 | Content (M2) | Supabase project | `supabase db push` migrations |
 
 Set `PUBLIC_STUDIO_ORIGIN` to the Studio's production origin and `VITE_PREVIEW_ORIGIN` to the renderer's.

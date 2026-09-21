@@ -8,9 +8,12 @@ import { focalToObjectPosition, type ImageRef } from '@siteos/schemas';
 interface Props { image: ImageRef; priority?: boolean; sizes?: string; field?: string; class?: string }
 const { image, priority = false, sizes = '(min-width: 1024px) 50vw, 100vw', field, class: cls } = Astro.props;
 const alt = image.decorative ? '' : image.alt;
+const sources = (image.sources ?? []).filter((s) => s.width > 0).sort((a, b) => a.width - b.width);
+const srcset = sources.length ? sources.map((s) => `${s.src} ${s.width}w`).join(', ') : undefined;
 ---
 <img
   src={image.src}
+  srcset={srcset}
   alt={alt}
   width={image.width}
   height={image.height}

@@ -10,7 +10,9 @@
     "SUPABASE_PUBLISHABLE_KEY",
     "SUPABASE_SECRET_KEY",
     "E2E_EMAIL",
-    "E2E_PASSWORD"
+    "E2E_PASSWORD",
+    "VITE_EDGE_ORIGIN",
+    "VITE_ASSET_BASE_URL"
   ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".astro/**"] },

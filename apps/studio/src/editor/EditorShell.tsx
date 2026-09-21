@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AssetLibrary } from './assets/AssetLibrary';
 import { BrandPanel } from './BrandPanel';
 import { Inspector } from './Inspector';
 import { Navigator } from './Navigator';
@@ -12,9 +13,10 @@ import { TopBar } from './TopBar';
 function LeftPanel() {
   return (
     <Tabs defaultValue="sections" className="flex h-full flex-col gap-0">
-      <TabsList className="m-2 grid grid-cols-3">
+      <TabsList className="m-2 grid grid-cols-4">
         <TabsTrigger value="pages">Pages</TabsTrigger>
         <TabsTrigger value="sections">Sections</TabsTrigger>
+        <TabsTrigger value="assets">Assets</TabsTrigger>
         <TabsTrigger value="brand">Brand</TabsTrigger>
       </TabsList>
       <TabsContent value="pages" className="min-h-0 flex-1 overflow-auto">
@@ -22,6 +24,9 @@ function LeftPanel() {
       </TabsContent>
       <TabsContent value="sections" className="min-h-0 flex-1 overflow-auto">
         <Navigator />
+      </TabsContent>
+      <TabsContent value="assets" className="min-h-0 flex-1 overflow-hidden">
+        <AssetLibrary compact />
       </TabsContent>
       <TabsContent value="brand" className="min-h-0 flex-1 overflow-auto">
         <BrandPanel />
