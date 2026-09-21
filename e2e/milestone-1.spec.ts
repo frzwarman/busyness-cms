@@ -127,7 +127,12 @@ test('the public route renders the same sections without editor scripts', async 
 }) => {
   await openEditor(page);
   const openSite = page.getByRole('link', { name: /Open site/ });
-  if ((await openSite.count()) === 0)
+  // The link appears once the publish state has loaded; only skip if the site really has nothing live.
+  const published = await openSite.waitFor({ timeout: 10_000 }).then(
+    () => true,
+    () => false,
+  );
+  if (!published)
     test.skip(true, 'Nothing published yet for this site; covered by milestone-3.spec.ts');
   const res = await request.get((await openSite.getAttribute('href')) as string);
   expect(res.status()).toBe(200);
