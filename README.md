@@ -9,14 +9,19 @@ lightweight **Astro** site. Users edit business intent (variant, alignment, them
 BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
 ```
 
-> **Status:** Milestones 1 (architecture foundation), 2 (database + auth) and 3 (publishing) are complete. See
+> **Status:** Milestones 1–4 are complete: architecture foundation, database + auth, publishing, and a 23-type section library. See
 > [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
 
 ## What works today
 
 - Three-panel Studio (pages / sections / brand · live preview · inspector) with dark mode.
 - Section Registry driving the picker, inspector, navigator, validation, defaults, variants and migrations.
-- Three polished section types with 10 layout variants: Hero, Image + Text, Call to action.
+- 23 section types with 61 layout variants, all on the registry: Navigation bar, Announcement bar, Hero, Rich text,
+  Image + Text, Quote, Statistics, Features (incl. bento), Services, Process, Logo cloud, Testimonials, Gallery, Video,
+  Call to action, FAQ, Opening hours, Locations, Menu, Pricing, Team, Portfolio, Footer.
+- Constrained rich text (Tiptap in the Studio, a whitelisted ProseMirror JSON subset on disk, HTML generated from the
+  tree — never sanitized HTML). Repeatable lists with nested lists, a curated inline-SVG icon set, privacy-enhanced
+  video embeds, no-JavaScript mobile menu and FAQ accordion.
 - Live preview in an iframe that renders **the same Astro components** as the public site.
 - Click a heading in the preview → the section is selected and the field is focused.
 - Desktop / tablet / mobile preview at real viewport widths.
@@ -227,9 +232,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 - Public site routing is path-based (`/s/<site-slug>/…`) or a single default site via `DEFAULT_SITE_SLUG`;
   platform subdomains are supported when `PUBLIC_PLATFORM_DOMAIN` is set, custom domains are not yet.
 - Invitations UI is not built; members are added via SQL/dashboard for now (owners/admins may insert `site_members`).
-- Three section types; the ~20-section library is M4.
 - Images are URL references; upload, variants, usage graph and duplicate detection are M5.
-- Rich text is plain multi-paragraph text until Tiptap lands with a v1→v2 migration.
+- Testimonials, logos, team etc. are edited inline per section; the shared content library (edit once, show everywhere) is M6.
 - Responsive overrides are declared in the registry (`capabilities.responsive`) but not yet editable.
 
 ## Roadmap
@@ -239,8 +243,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 | 1 Architecture foundation | monorepo, registry, 3 sections, tokens, live preview, editor | **done** |
 | 2 Database + auth | Supabase Auth, orgs/sites/memberships, RLS, autosave with revisions | **done** |
 | 3 Publishing | immutable versions, publish, rollback, public content API, content SDK | **done** |
-| 4 Section library | ~20 sections on the registry | next |
-| 5 Assets | R2 signed uploads, Web Worker resize, focal point, usage graph, dedupe | planned |
+| 4 Section library | 23 sections on the registry | **done** |
+| 5 Assets | R2 signed uploads, Web Worker resize, focal point, usage graph, dedupe | next |
 | 6 Content + globals | reusable collections, navbar/footer globals, detach | planned |
 | 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox | planned |
 | 8 Business packs | packs, page recipes, presets, guided creation | planned |

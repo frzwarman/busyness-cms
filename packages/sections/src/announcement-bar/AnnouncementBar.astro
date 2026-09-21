@@ -1,0 +1,23 @@
+---
+import type { SectionRenderProps } from '../render-context.ts';
+import type { AnnouncementBarProps } from './schema.ts';
+
+type Props = SectionRenderProps<AnnouncementBarProps>;
+const { props: p, section, ctx } = Astro.props;
+const href = p.link ? ctx.href(p.link) : undefined;
+---
+<aside id={section.id} data-section-id={section.id} data-section-type={section.type} class:list={['section', p.variant === 'pill' ? 'theme-light' : `theme-${p.theme}`, 'announce', `v-${p.variant}`]} aria-label="Announcement">
+  <div class="container">
+    <p class:list={['inner', p.variant === 'pill' && `theme-${p.theme}`, p.variant === 'pill' && 'section']}>
+      <span data-field="text">{p.text}</span>
+      {href && p.linkLabel && <a href={href} data-field="linkLabel">{p.linkLabel} →</a>}
+    </p>
+  </div>
+</aside>
+<style>
+  .inner { display: flex; flex-wrap: wrap; gap: .25rem 1rem; align-items: center; justify-content: center; font-size: .9375rem; text-align: center; }
+  .v-bar .inner { padding-block: .625rem; }
+  .v-pill .container { display: flex; justify-content: center; padding-block: .75rem; }
+  .v-pill .inner { width: auto; padding: .5rem 1rem; border-radius: 999px; }
+  a { color: inherit; font-weight: 600; text-underline-offset: .2em; }
+</style>

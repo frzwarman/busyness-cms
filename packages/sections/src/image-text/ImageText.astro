@@ -3,12 +3,12 @@ import Button from '../primitives/Button.astro';
 import Picture from '../primitives/Picture.astro';
 import SectionFrame from '../primitives/SectionFrame.astro';
 import type { SectionRenderProps } from '../render-context.ts';
+import RichText from '../rich-text/RichText.astro';
 import type { ImageTextProps } from './schema.ts';
 
 type Props = SectionRenderProps<ImageTextProps>;
 const { props: p, section, ctx } = Astro.props;
 const headingId = `${section.id}-heading`;
-const paragraphs = p.body.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
 ---
 <SectionFrame section={section} theme={p.theme} spacing={p.spacing} labelledBy={headingId} class:list={[`v-${p.variant}`, `ratio-${p.imageRatio}`, p.image ? 'has-media' : 'no-media']}>
   <div class="inner">
@@ -16,11 +16,7 @@ const paragraphs = p.body.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
     <div class="copy">
       {p.eyebrow && <p class="eyebrow" data-field="eyebrow">{p.eyebrow}</p>}
       <h2 id={headingId} class="t-h2" data-field="heading">{p.heading}</h2>
-      {paragraphs.length > 0 && (
-        <div class="body" data-field="body">
-          {paragraphs.map((para) => <p>{para}</p>)}
-        </div>
-      )}
+      {p.body.content.length > 0 && <RichText doc={p.body} class="body" field="body" />}
       {p.cta && <div class="actions"><Button button={p.cta} ctx={ctx} field="cta" /></div>}
     </div>
   </div>
@@ -29,7 +25,7 @@ const paragraphs = p.body.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
 <style>
   .inner { display: grid; gap: 2.5rem; align-items: center; }
   .copy { display: grid; gap: 1rem; }
-  .body { display: grid; gap: .75em; color: var(--section-muted); font-size: 1.0625rem; }
+  .body { color: var(--section-muted); font-size: 1.0625rem; }
   .actions { margin-top: .5rem; }
   .ratio-square .media { aspect-ratio: 1; }
   .ratio-landscape .media { aspect-ratio: 4 / 3; }

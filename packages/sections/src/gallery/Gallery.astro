@@ -1,0 +1,42 @@
+---
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { GalleryProps } from './schema.ts';
+
+type Props = SectionRenderProps<GalleryProps>;
+const { props: p, section } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`, `cols-${p.columns}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ul class="gallery" data-field="items">
+    {p.items.map((it) => (
+      <li>
+        <figure>
+          <div class="media"><Picture image={it.image} sizes={`(min-width: 900px) ${Math.round(100 / Number(p.columns))}vw, 50vw`} /></div>
+          {it.caption && <figcaption class="muted">{it.caption}</figcaption>}
+        </figure>
+      </li>
+    ))}
+  </ul>
+</SectionFrame>
+<style>
+  .gallery { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
+  figure { margin: 0; display: grid; gap: .5rem; }
+  figcaption { font-size: .875rem; }
+  .v-grid .media { aspect-ratio: 4 / 3; }
+  .v-strip .gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .5rem; }
+  .v-strip li { flex: 0 0 min(80vw, 24rem); scroll-snap-align: start; }
+  .v-strip .media { aspect-ratio: 4 / 3; }
+  @media (min-width: 900px) {
+    .cols-2 .gallery { grid-template-columns: repeat(2, 1fr); }
+    .cols-3 .gallery { grid-template-columns: repeat(3, 1fr); }
+    .cols-4 .gallery { grid-template-columns: repeat(4, 1fr); }
+    .v-masonry .gallery { display: block; column-gap: 1rem; }
+    .v-masonry.cols-2 .gallery { columns: 2; } .v-masonry.cols-3 .gallery { columns: 3; } .v-masonry.cols-4 .gallery { columns: 4; }
+    .v-masonry li { break-inside: avoid; margin-bottom: 1rem; }
+    .v-strip .gallery { display: grid; overflow: visible; }
+    .v-strip li { flex: none; }
+  }
+</style>

@@ -1,13 +1,12 @@
-import { buttonSchema, imageRefSchema } from '@siteos/schemas';
 import { z } from 'zod';
-import { sectionStyleFields } from '../shared.ts';
+import { buttonSchema, imageRefSchema, richTextDocSchema, sectionStyleFields } from '../shared.ts';
 
 export const imageTextSchema = z.object({
   variant: z.enum(['image-left', 'image-right', 'stacked']),
   eyebrow: z.string().max(80).default(''),
   heading: z.string().min(1).max(160),
-  /** Plain text; blank lines separate paragraphs. Rich text (Tiptap) replaces this in a v2 migration. */
-  body: z.string().max(4000).default(''),
+  /** v2: rich text (v1 stored plain text with blank-line paragraphs; see migrations). */
+  body: richTextDocSchema,
   image: imageRefSchema.nullable().default(null),
   imageRatio: z.enum(['square', 'landscape', 'portrait']).default('landscape'),
   cta: buttonSchema.nullable().default(null),

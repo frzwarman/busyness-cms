@@ -1,0 +1,44 @@
+---
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { PortfolioProps } from './schema.ts';
+
+type Props = SectionRenderProps<PortfolioProps>;
+const { props: p, section, ctx } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ul class="items" data-field="items">
+    {p.items.map((it) => {
+      const href = it.link ? ctx.href(it.link) : undefined;
+      const Wrap = href ? 'a' : 'div';
+      return (
+        <li class="item">
+          <Wrap href={href} class="link">
+            <div class="media">{it.image && <Picture image={it.image} sizes="(min-width: 900px) 50vw, 100vw" />}</div>
+            <div class="meta">
+              {it.category && <p class="eyebrow">{it.category}</p>}
+              <h3 class="t-h3">{it.title}</h3>
+            </div>
+          </Wrap>
+        </li>
+      );
+    })}
+  </ul>
+</SectionFrame>
+<style>
+  .items { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem; }
+  .link { display: grid; gap: .75rem; color: inherit; text-decoration: none; }
+  a.link:hover h3 { text-decoration: underline; text-underline-offset: .2em; }
+  .media { aspect-ratio: 4 / 3; }
+  .meta { display: grid; gap: .25rem; }
+  .v-large .media { aspect-ratio: 16 / 9; }
+  @media (min-width: 900px) {
+    .v-grid .items { grid-template-columns: repeat(2, 1fr); }
+    .v-masonry .items { display: block; columns: 2; column-gap: 2rem; }
+    .v-masonry .item { break-inside: avoid; margin-bottom: 2rem; }
+    .v-masonry .media { aspect-ratio: auto; }
+  }
+</style>

@@ -1,0 +1,43 @@
+---
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { TeamProps } from './schema.ts';
+
+type Props = SectionRenderProps<TeamProps>;
+const { props: p, section, ctx } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ul class="members" data-field="members">
+    {p.members.map((m) => {
+      const href = m.link ? ctx.href(m.link) : undefined;
+      return (
+        <li class="member">
+          <div class="photo">{m.image ? <Picture image={m.image} sizes="(min-width: 900px) 25vw, 50vw" /> : <span class="initials" aria-hidden="true">{m.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2)}</span>}</div>
+          <div class="body">
+            <h3 class="t-h3">{href ? <a href={href}>{m.name}</a> : m.name}</h3>
+            {m.role && <p class="role">{m.role}</p>}
+            {m.bio && <p class="muted">{m.bio}</p>}
+          </div>
+        </li>
+      );
+    })}
+  </ul>
+</SectionFrame>
+<style>
+  .members { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem; grid-template-columns: repeat(2, 1fr); }
+  .member { display: grid; gap: 1rem; align-content: start; }
+  .body { display: grid; gap: .25rem; }
+  .body a { color: inherit; text-decoration: none; }
+  .role { font-weight: 600; color: var(--color-primary); }
+  .theme-brand .role, .theme-dark .role { color: inherit; opacity: .85; }
+  .photo { aspect-ratio: 1; border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); display: grid; place-items: center; }
+  .photo :global(img) { width: 100%; height: 100%; object-fit: cover; }
+  .initials { font-family: var(--font-heading); font-size: 2rem; color: var(--color-muted); }
+  .align-center + .members .member { text-align: center; }
+  .v-list .members { grid-template-columns: 1fr; }
+  .v-list .member { grid-template-columns: 6rem 1fr; text-align: left; }
+  @media (min-width: 900px) { .v-grid .members { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); } .v-list .member { grid-template-columns: 8rem 1fr; } }
+</style>

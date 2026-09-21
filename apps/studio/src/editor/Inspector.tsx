@@ -1,5 +1,6 @@
 import { getPath } from '@siteos/editor-core';
 import type { Button as ButtonValue, ImageRef, Link, SectionInstance } from '@siteos/schemas';
+import type { IconName, RichTextDoc } from '@siteos/sections';
 import {
   type InspectorField,
   type InspectorGroup,
@@ -23,8 +24,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { ButtonControl } from './controls/ButtonControl';
 import { fieldId } from './controls/field-id';
+import { IconControl } from './controls/IconControl';
 import { ImageControl } from './controls/ImageControl';
 import { LinkControl } from './controls/LinkControl';
+import { ListControl } from './controls/ListControl';
+import { RichTextControl } from './controls/RichTextControl';
 import { Segmented } from './controls/Segmented';
 import { useEditor, useSelectedSection } from './EditorProvider';
 import { Thumbnail } from './Thumbnail';
@@ -258,108 +262,166 @@ function FieldControl({
 }) {
   const id = fieldId(section.id, field.path);
   const value = getPath(section.props, field.path);
-  // Composite controls (image, button, link) carry their own labelled inputs; a <label for> pointing at
-  // their container button would override its visible text as the accessible name.
   const composite =
-    field.control === 'image' || field.control === 'button' || field.control === 'link';
-  const common = {
-    label: field.label,
-    htmlFor: composite ? undefined : id,
-    description: field.description,
-  };
+    field.control === 'image' ||
+    field.control === 'button' ||
+    field.control === 'link' ||
+    field.control === 'list' ||
+    field.control === 'richtext' ||
+    field.control === 'icon';
+  if (field.control === 'toggle') {
+    return (
+      <div className="flex items-center justify-between">
+        <Label htmlFor={id} className="text-xs font-normal">
+          {field.label}
+        </Label>
+        <Switch id={id} checked={Boolean(value)} onCheckedChange={(v) => onChange(field.path, v)} />
+      </div>
+    );
+  }
+  return (
+    <Field label={field.label} htmlFor={composite ? undefined : id} description={field.description}>
+      {renderControl(field, value, (v) => onChange(field.path, v), id)}
+    </Field>
+  );
+}
+
+/** One control for one field value. Shared by top-level fields and list items (recursively). */
+export function renderControl(
+  field: InspectorField,
+  value: unknown,
+  onChange: (v: unknown) => void,
+  id: string,
+): React.ReactNode {
   switch (field.control) {
     case 'text':
       return (
-        <Field {...common}>
-          <Input
-            id={id}
-            value={String(value ?? '')}
-            maxLength={field.maxLength}
-            placeholder={field.placeholder}
-            onChange={(e) => onChange(field.path, e.target.value)}
-          />
-        </Field>
+        <Input
+          id={id}
+          value={String(value ?? '')}
+          maxLength={field.maxLength}
+          placeholder={field.placeholder}
+          onChange={(e) => onChange(e.target.value)}
+        />
       );
     case 'textarea':
       return (
-        <Field {...common}>
-          <Textarea
-            id={id}
-            value={String(value ?? '')}
-            rows={field.rows ?? 3}
-            maxLength={field.maxLength}
-            onChange={(e) => onChange(field.path, e.target.value)}
-          />
-        </Field>
+        <Textarea
+          id={id}
+          value={String(value ?? '')}
+          rows={field.rows ?? 3}
+          maxLength={field.maxLength}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    case 'number':
+      return (
+        <Input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          value={value === undefined || value === null ? '' : String(value)}
+          min={field.min}
+          max={field.max}
+          step={field.step}
+          onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+        />
       );
     case 'select':
       return (
-        <Field {...common}>
-          <Select value={String(value ?? '')} onValueChange={(v) => onChange(field.path, v)}>
-            <SelectTrigger id={id} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+        <Select value={String(value ?? '')} onValueChange={(v) => onChange(v)}>
+          <SelectTrigger id={id} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {field.options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       );
     case 'segmented':
       return (
-        <Field {...common}>
-          <Segmented
-            id={id}
-            label={field.label}
-            value={String(value ?? '')}
-            options={field.options}
-            onChange={(v) => onChange(field.path, v)}
-          />
-        </Field>
+        <Segmented
+          id={id}
+          label={field.label}
+          value={String(value ?? '')}
+          options={field.options}
+          onChange={(v) => onChange(v)}
+        />
       );
     case 'toggle':
       return (
-        <div className="flex items-center justify-between">
-          <Label htmlFor={id} className="text-xs font-normal">
-            {field.label}
-          </Label>
-          <Switch
-            id={id}
-            checked={Boolean(value)}
-            onCheckedChange={(v) => onChange(field.path, v)}
-          />
-        </div>
+        <Switch
+          id={id}
+          checked={Boolean(value)}
+          onCheckedChange={(v) => onChange(v)}
+          aria-label={field.label}
+        />
       );
     case 'image':
       return (
-        <Field {...common}>
-          <ImageControl
-            id={id}
-            value={(value as ImageRef | null) ?? null}
-            onChange={(v) => onChange(field.path, v)}
-          />
-        </Field>
+        <ImageControl
+          id={id}
+          value={(value as ImageRef | null) ?? null}
+          onChange={(v) => onChange(v)}
+        />
       );
     case 'button':
       return (
-        <Field {...common}>
-          <ButtonControl
-            id={id}
-            label={field.label}
-            value={(value as ButtonValue | null) ?? null}
-            onChange={(v) => onChange(field.path, v)}
-          />
-        </Field>
+        <ButtonControl
+          id={id}
+          label={field.label}
+          value={(value as ButtonValue | null) ?? null}
+          onChange={(v) => onChange(v)}
+        />
       );
     case 'link':
+      return value ? (
+        <LinkControl id={id} value={value as Link} onChange={(v) => onChange(v)} />
+      ) : (
+        <Button
+          id={id}
+          variant="outline"
+          size="sm"
+          className="justify-start"
+          onClick={() => onChange({ kind: 'anchor', anchor: 'main' })}
+        >
+          Add link
+        </Button>
+      );
+    case 'icon':
       return (
-        <Field {...common}>
-          <LinkControl id={id} value={value as Link} onChange={(v) => onChange(field.path, v)} />
-        </Field>
+        <IconControl
+          id={id}
+          value={(value as IconName | null) ?? null}
+          onChange={(v) => onChange(v)}
+        />
+      );
+    case 'richtext':
+      return (
+        <RichTextControl
+          id={id}
+          value={(value as RichTextDoc | undefined) ?? { type: 'doc', content: [] }}
+          onChange={(v) => onChange(v)}
+        />
+      );
+    case 'list':
+      return (
+        <ListControl
+          id={id}
+          label={field.label}
+          items={Array.isArray(value) ? (value as Array<Record<string, unknown> | string>) : []}
+          itemLabel={field.itemLabel}
+          fields={field.fields}
+          titlePath={field.titlePath}
+          max={field.max}
+          newItem={field.newItem}
+          onChange={(items) => onChange(items)}
+          renderField={renderControl}
+        />
       );
   }
 }

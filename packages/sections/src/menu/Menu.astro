@@ -1,0 +1,47 @@
+---
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { MenuProps } from './schema.ts';
+
+type Props = SectionRenderProps<MenuProps>;
+const { props: p, section } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]} labelledBy={undefined}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <div class="groups" data-field="groups">
+    {p.groups.map((g) => (
+      <section class="group">
+        <h3 class="t-h3 gtitle">{g.title}</h3>
+        <ul class="items">
+          {g.items.map((it) => (
+            <li class="item">
+              <div class="row">
+                <span class="name">{it.name}{it.tags && <span class="tags"> {it.tags}</span>}</span>
+                <span class="dots" aria-hidden="true"></span>
+                {it.price && <span class="price">{it.price}</span>}
+              </div>
+              {it.description && <p class="muted desc">{it.description}</p>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+  {p.note && <p class="muted note" data-field="note">{p.note}</p>}
+</SectionFrame>
+<style>
+  .groups { display: grid; gap: 2.5rem; }
+  .group { display: grid; gap: 1rem; }
+  .gtitle { padding-bottom: .5rem; border-bottom: 2px solid var(--color-primary); }
+  .theme-brand .gtitle, .theme-dark .gtitle { border-color: currentColor; }
+  .items { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
+  .row { display: flex; align-items: baseline; gap: .5rem; }
+  .name { font-weight: 600; }
+  .tags { font-size: .75rem; font-weight: 700; letter-spacing: .08em; color: var(--color-accent); }
+  .dots { flex: 1; border-bottom: 1px dotted var(--section-border); transform: translateY(-.35em); }
+  .price { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .desc { font-size: .9375rem; margin-top: .15rem; }
+  .note { margin-top: 2rem; font-size: .875rem; text-align: center; }
+  @media (min-width: 900px) { .v-columns .groups { grid-template-columns: repeat(2, 1fr); gap: 3rem; } }
+</style>

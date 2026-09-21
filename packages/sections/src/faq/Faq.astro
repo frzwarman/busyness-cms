@@ -1,0 +1,46 @@
+---
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import RichText from '../rich-text/RichText.astro';
+import type { FaqProps } from './schema.ts';
+
+type Props = SectionRenderProps<FaqProps>;
+const { props: p, section } = Astro.props;
+const plain = p.variant === 'plain';
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <div class="layout">
+    <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.variant === 'two-column' ? 'left' : p.align} />
+    <div class="items" data-field="items">
+      {p.items.map((it, i) =>
+        plain ? (
+          <div class="item">
+            <h3 class="t-h3">{it.question}</h3>
+            <RichText doc={it.answer} class="answer" />
+          </div>
+        ) : (
+          <details class="item" open={i === 0 ? true : undefined}>
+            <summary><span class="q">{it.question}</span><span class="chev" aria-hidden="true"></span></summary>
+            <RichText doc={it.answer} class="answer" />
+          </details>
+        ),
+      )}
+    </div>
+  </div>
+</SectionFrame>
+<style>
+  .items { display: grid; gap: 0; }
+  .item { border-top: 1px solid var(--section-border); padding-block: 1rem; display: grid; gap: .75rem; }
+  .item:last-child { border-bottom: 1px solid var(--section-border); }
+  summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 1rem; cursor: pointer; font-weight: 600; font-size: 1.0625rem; }
+  summary::-webkit-details-marker { display: none; }
+  .chev { width: .6rem; height: .6rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s; flex: none; margin-right: .25rem; }
+  details[open] .chev { transform: rotate(-135deg); }
+  .answer { color: var(--section-muted); }
+  .v-plain .items { gap: 1rem; }
+  @media (min-width: 900px) {
+    .v-two-column .layout { display: grid; grid-template-columns: 2fr 3fr; gap: 4rem; align-items: start; }
+    .v-two-column .layout :global(.intro) { margin-bottom: 0; position: sticky; top: 2rem; }
+  }
+</style>

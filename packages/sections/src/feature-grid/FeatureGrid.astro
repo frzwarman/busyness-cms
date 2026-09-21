@@ -1,0 +1,46 @@
+---
+import Icon from '../primitives/Icon.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { FeatureGridProps } from './schema.ts';
+
+type Props = SectionRenderProps<FeatureGridProps>;
+const { props: p, section, ctx } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ul class="grid" data-field="items">
+    {p.items.map((it, i) => {
+      const href = it.link ? ctx.href(it.link) : undefined;
+      return (
+        <li class:list={['item', p.variant === 'bento' && 'card', p.variant === 'bento' && i % 3 === 0 && 'wide']}>
+          {it.icon && <span class="icon"><Icon name={it.icon} /></span>}
+          <div class="body">
+            <h3 class="t-h3">{it.title}</h3>
+            {it.description && <p class="muted">{it.description}</p>}
+            {href && it.linkLabel && <a class="more" href={href}>{it.linkLabel} →</a>}
+          </div>
+        </li>
+      );
+    })}
+  </ul>
+</SectionFrame>
+<style>
+  .grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem; }
+  .item { display: grid; gap: 1rem; align-content: start; }
+  .body { display: grid; gap: .5rem; }
+  .icon { display: inline-grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--radius-md); background: var(--color-primary-soft); color: var(--color-primary); }
+  .theme-brand .icon, .theme-dark .icon { background: color-mix(in srgb, var(--section-fg) 12%, transparent); color: inherit; }
+  .more { font-weight: 600; text-decoration: none; color: var(--color-primary); }
+  .theme-brand .more, .theme-dark .more { color: inherit; }
+  .align-center + .grid .item { text-align: center; justify-items: center; }
+  .v-list .item { grid-template-columns: auto 1fr; text-align: left; justify-items: start; }
+  @media (min-width: 700px) {
+    .v-three-column .grid { grid-template-columns: repeat(3, 1fr); }
+    .v-two-column .grid { grid-template-columns: repeat(2, 1fr); }
+    .v-list .grid { grid-template-columns: repeat(2, 1fr); }
+    .v-bento .grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .v-bento .item.wide { grid-column: span 2; }
+  }
+</style>

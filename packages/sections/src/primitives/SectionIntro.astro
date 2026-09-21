@@ -1,0 +1,18 @@
+---
+/** Eyebrow / heading / description block shared by list-like sections. Renders nothing when all empty. */
+interface Props { eyebrow?: string; heading?: string; description?: string; align?: 'left' | 'center'; level?: 2 | 3; class?: string }
+const { eyebrow = '', heading = '', description = '', align = 'left', level = 2, class: cls } = Astro.props;
+const Heading = `h${level}` as 'h2' | 'h3';
+const show = eyebrow || heading || description;
+---
+{show && (
+  <div class:list={['intro', `align-${align}`, cls]}>
+    {eyebrow && <p class="eyebrow" data-field="eyebrow">{eyebrow}</p>}
+    {heading && <Heading class="t-h2" data-field="heading">{heading}</Heading>}
+    {description && <p class="t-lead muted" data-field="description">{description}</p>}
+  </div>
+)}
+<style>
+  .intro { display: grid; gap: .75rem; max-width: 44rem; margin-bottom: 2.5rem; }
+  .align-center { text-align: center; margin-inline: auto; }
+</style>

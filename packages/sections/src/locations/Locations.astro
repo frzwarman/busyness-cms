@@ -1,0 +1,49 @@
+---
+import Icon from '../primitives/Icon.astro';
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { LocationsProps } from './schema.ts';
+
+type Props = SectionRenderProps<LocationsProps>;
+const { props: p, section } = Astro.props;
+const tel = (s: string) => `tel:${s.replace(/[^\d+]/g, '')}`;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ul class="items" data-field="items">
+    {p.items.map((l) => (
+      <li class:list={['item', p.variant === 'cards' && 'card']}>
+        {l.image && <div class="media"><Picture image={l.image} sizes="(min-width: 900px) 40vw, 100vw" /></div>}
+        <div class="body">
+          <h3 class="t-h3">{l.name}</h3>
+          <address>
+            <p class="line"><Icon name="map-pin" size={18} /><span>{l.address.split('\n').map((ln, i) => <>{i > 0 && <br />}{ln}</>)}</span></p>
+            {l.phone && <p class="line"><Icon name="phone" size={18} /><a href={tel(l.phone)}>{l.phone}</a></p>}
+            {l.email && <p class="line"><Icon name="mail" size={18} /><a href={`mailto:${l.email}`}>{l.email}</a></p>}
+            {l.hours && <p class="line"><Icon name="clock" size={18} /><span>{l.hours}</span></p>}
+          </address>
+          {l.mapUrl && <a class="btn btn-outline" href={l.mapUrl} target="_blank" rel="noopener noreferrer">Get directions</a>}
+        </div>
+      </li>
+    ))}
+  </ul>
+</SectionFrame>
+<style>
+  .items { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; }
+  .item { display: grid; gap: 1.25rem; align-content: start; }
+  .body { display: grid; gap: 1rem; justify-items: start; }
+  address { font-style: normal; display: grid; gap: .5rem; }
+  .line { display: flex; gap: .6rem; align-items: start; margin: 0; }
+  .line :global(svg) { flex: none; margin-top: .2rem; color: var(--color-primary); }
+  .theme-brand .line :global(svg), .theme-dark .line :global(svg) { color: inherit; }
+  .line a { color: inherit; }
+  .media { aspect-ratio: 4 / 3; }
+  @media (min-width: 900px) {
+    .v-single .item { grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+    .v-single .media { order: 2; }
+    .v-cards .items { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+    .v-list .item { grid-template-columns: 1fr 2fr; padding-block: 1.25rem; border-top: 1px solid var(--section-border); }
+  }
+</style>

@@ -1,0 +1,48 @@
+---
+import Button from '../primitives/Button.astro';
+import Icon from '../primitives/Icon.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { PricingProps } from './schema.ts';
+
+type Props = SectionRenderProps<PricingProps>;
+const { props: p, section, ctx } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`, `count-${p.plans.length}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ul class="plans" data-field="plans">
+    {p.plans.map((pl) => (
+      <li class:list={['plan', 'card', pl.highlighted && 'hot']}>
+        {pl.badge && <span class="badge">{pl.badge}</span>}
+        <div class="head">
+          <h3 class="t-h3">{pl.name}</h3>
+          <p class="price"><span class="amount">{pl.price}</span>{pl.period && <span class="muted period"> {pl.period}</span>}</p>
+          {pl.description && <p class="muted">{pl.description}</p>}
+        </div>
+        {pl.features.length > 0 && (
+          <ul class="features">{pl.features.map((f) => <li><Icon name="check" size={18} /> {f}</li>)}</ul>
+        )}
+        {pl.cta && <div class="cta"><Button button={pl.cta} ctx={ctx} field="plans" /></div>}
+      </li>
+    ))}
+  </ul>
+</SectionFrame>
+<style>
+  .plans { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; align-items: stretch; }
+  .plan { display: grid; gap: 1.25rem; align-content: start; position: relative; }
+  .plan.hot { border-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
+  .badge { position: absolute; top: -0.75rem; left: var(--card-spacing); font-size: .75rem; font-weight: 700; padding: .25rem .6rem; border-radius: 999px; background: var(--color-primary); color: var(--color-primary-contrast); }
+  .head { display: grid; gap: .5rem; }
+  .price { margin: 0; }
+  .amount { font-family: var(--font-heading); font-weight: var(--heading-weight); font-size: calc(1rem * var(--heading-scale) * var(--heading-scale)); }
+  .features { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .features li { display: flex; gap: .5rem; align-items: start; }
+  .features :global(svg) { flex: none; margin-top: .2rem; color: var(--color-primary); }
+  .cta { margin-top: auto; }
+  .cta :global(.btn) { width: 100%; }
+  @media (min-width: 900px) {
+    .v-cards .plans { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+    .v-compact .plan { grid-template-columns: 1fr 2fr auto; align-items: center; }
+  }
+</style>

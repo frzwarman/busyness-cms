@@ -1,0 +1,37 @@
+---
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { BusinessHoursProps } from './schema.ts';
+
+type Props = SectionRenderProps<BusinessHoursProps>;
+const { props: p, section } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <div class="wrap">
+    <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+    <table class="hours" data-field="rows">
+      <tbody>
+        {p.rows.map((r) => (
+          <tr>
+            <th scope="row">{r.day}</th>
+            <td>{r.closed ? <span class="muted">Closed</span> : <time>{r.open}</time>}{!r.closed && <> – <time>{r.close}</time></>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    {p.note && <p class="muted note" data-field="note">{p.note}</p>}
+  </div>
+</SectionFrame>
+<style>
+  .wrap { max-width: 36rem; }
+  .v-compact .wrap { max-width: none; display: grid; gap: 1rem; }
+  .hours { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: .75rem 0; border-bottom: 1px solid var(--section-border); font-weight: 500; }
+  td { text-align: right; font-variant-numeric: tabular-nums; }
+  .note { margin-top: 1rem; font-size: .9375rem; }
+  .v-compact .hours, .v-compact tbody, .v-compact tr { display: flex; flex-wrap: wrap; gap: 1rem 2rem; }
+  .v-compact tr { border: 0; } .v-compact th, .v-compact td { border: 0; padding: 0; display: block; }
+  .v-compact th { font-size: .8125rem; color: var(--section-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .v-compact td { text-align: left; }
+</style>

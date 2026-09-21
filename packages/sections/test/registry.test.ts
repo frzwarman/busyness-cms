@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { demoAboutPage, demoHomePage } from '../src/fixtures/index.ts';
 import {
   defineSection,
+  embedFor,
   migrateSection,
   parseWireframe,
   registry,
@@ -204,5 +205,72 @@ describe('thumbnail DSL', () => {
       { background: false, columns: [['E', 'H', 'T', 'B'], ['M']] },
       { background: true, columns: [['M', 'H']] },
     ]);
+  });
+});
+
+describe('section library', () => {
+  it('has at least 20 section types, each with valid defaults for every variant', () => {
+    expect(registry.list().length).toBeGreaterThanOrEqual(20);
+    for (const def of registry.list()) {
+      for (const v of def.variants) {
+        const r = def.schema.safeParse({ ...def.defaults, variant: v.value });
+        expect(r.success, `${def.type}/${v.value}: ${r.success ? '' : r.error.message}`).toBe(true);
+      }
+      // Every inspector path exists in the defaults (catches typos in definitions).
+      for (const g of def.inspector)
+        for (const f of g.fields)
+          expect(f.path in def.defaults, `${def.type}.${f.path}`).toBe(true);
+      // list controls: newItem() must satisfy the item schema
+      for (const g of def.inspector)
+        for (const f of g.fields)
+          if (f.control === 'list') {
+            const arr = registry.create(def.type).props[f.path] as unknown[];
+            const withNew = def.schema.safeParse({
+              ...def.defaults,
+              [f.path]: [...arr.slice(0, 1), f.newItem()],
+            });
+            expect(
+              withNew.success,
+              `${def.type}.${f.path} newItem: ${withNew.success ? '' : withNew.error.message}`,
+            ).toBe(true);
+          }
+    }
+  });
+
+  it('migrates image-text v1 plain body to v2 rich text', () => {
+    const r = registry.validate({
+      id: 'sec_mig000000010',
+      type: 'image-text',
+      schemaVersion: 1,
+      hidden: false,
+      props: {
+        variant: 'image-left',
+        heading: 'H',
+        body: 'One.\n\nTwo.',
+        image: null,
+        imageRatio: 'landscape',
+        cta: null,
+        theme: 'light',
+        spacing: 'standard',
+      },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.section.schemaVersion).toBe(2);
+      expect((r.section.props.body as { content: unknown[] }).content).toHaveLength(2);
+    }
+  });
+
+  it('video embeds are privacy-enhanced and reject unknown hosts', () => {
+    expect(embedFor('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toEqual({
+      kind: 'youtube',
+      src: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+    });
+    expect(embedFor('https://youtu.be/dQw4w9WgXcQ')?.kind).toBe('youtube');
+    expect(embedFor('https://vimeo.com/123456789')).toEqual({
+      kind: 'vimeo',
+      src: 'https://player.vimeo.com/video/123456789?dnt=1',
+    });
+    expect(embedFor('https://evil.example/video')).toBeNull();
   });
 });

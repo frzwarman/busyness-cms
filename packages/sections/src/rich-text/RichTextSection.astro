@@ -1,0 +1,17 @@
+---
+import SectionFrame from '../primitives/SectionFrame.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { RichTextSectionProps } from './definition.ts';
+import RichText from './RichText.astro';
+
+type Props = SectionRenderProps<RichTextSectionProps>;
+const { props: p, section } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <RichText doc={p.body} class="text" field="body" />
+</SectionFrame>
+<style>
+  .v-narrow .text { max-width: 44rem; margin-inline: auto; }
+  .v-wide .text { max-width: 60rem; }
+  @media (min-width: 900px) { .v-two-column .text { display: block; columns: 2; column-gap: 3rem; } .v-two-column .text :global(*) { break-inside: avoid; } }
+</style>

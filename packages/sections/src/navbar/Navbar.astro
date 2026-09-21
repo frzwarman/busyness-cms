@@ -1,0 +1,66 @@
+---
+import Button from '../primitives/Button.astro';
+import Picture from '../primitives/Picture.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { NavbarProps } from './schema.ts';
+
+type Props = SectionRenderProps<NavbarProps>;
+const { props: p, section, ctx } = Astro.props;
+const half = Math.ceil(p.links.length / 2);
+const groups = p.variant === 'split' ? [p.links.slice(0, half), p.links.slice(half)] : [p.links];
+const menuId = `${section.id}-menu`;
+---
+<header
+  id={section.id}
+  data-section-id={section.id}
+  data-section-type={section.type}
+  class:list={['section', `theme-${p.theme}`, 'navbar', `v-${p.variant}`, p.sticky && 'is-sticky']}
+>
+  <nav class="container bar" aria-label="Main">
+    {p.variant === 'split' && <ul class="links side">{groups[0]?.map((l) => <li><a href={ctx.href(l.link) ?? '#'} data-field="links">{l.label}</a></li>)}</ul>}
+    <a class="brand" href={ctx.href({ kind: 'anchor', anchor: 'main' })} data-field="brandName">
+      {p.logo ? <Picture image={{ ...p.logo, alt: p.logo.alt || p.brandName }} priority sizes="160px" class="logo" /> : <span class="brand-name">{p.brandName}</span>}
+    </a>
+    <details class="menu">
+      <summary aria-label="Open menu"><span class="burger" aria-hidden="true"></span></summary>
+      <div class="drawer" id={menuId}>
+        <ul class="links">{p.links.map((l) => <li><a href={ctx.href(l.link) ?? '#'}>{l.label}</a></li>)}</ul>
+        {p.cta && <Button button={p.cta} ctx={ctx} field="cta" />}
+      </div>
+    </details>
+    <div class="desktop">
+      <ul class="links" data-field="links">{(p.variant === 'split' ? groups[1] : p.links)?.map((l) => <li><a href={ctx.href(l.link) ?? '#'}>{l.label}</a></li>)}</ul>
+      {p.cta && <Button button={p.cta} ctx={ctx} field="cta" />}
+    </div>
+  </nav>
+</header>
+
+<style>
+  .navbar { border-bottom: 1px solid var(--section-border); }
+  .is-sticky { position: sticky; top: 0; z-index: 50; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-height: 4.25rem; }
+  .brand { display: inline-flex; align-items: center; text-decoration: none; font-family: var(--font-heading); font-weight: var(--heading-weight); font-size: 1.25rem; letter-spacing: -0.01em; }
+  .brand :global(img.logo) { height: 2.25rem; width: auto; object-fit: contain; }
+  .links { display: flex; gap: 1.5rem; list-style: none; margin: 0; padding: 0; }
+  .links a { text-decoration: none; font-weight: 500; color: inherit; opacity: .85; }
+  .links a:hover { opacity: 1; text-decoration: underline; text-underline-offset: .3em; }
+  .desktop { display: none; align-items: center; gap: 1.5rem; }
+  .side { display: none; }
+  .menu summary { list-style: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; cursor: pointer; border-radius: var(--radius-md); }
+  .menu summary::-webkit-details-marker { display: none; }
+  .burger, .burger::before, .burger::after { display: block; width: 1.25rem; height: 2px; background: currentColor; border-radius: 2px; position: relative; content: ''; }
+  .burger::before { position: absolute; top: -6px; }
+  .burger::after { position: absolute; top: 6px; }
+  .drawer { position: absolute; left: 0; right: 0; top: 100%; display: grid; gap: 1.25rem; padding: 1.25rem; background: var(--section-bg); border-bottom: 1px solid var(--section-border); box-shadow: 0 12px 30px rgb(0 0 0 / .08); }
+  .drawer .links { flex-direction: column; gap: .75rem; }
+  .navbar { position: relative; }
+  @media (min-width: 900px) {
+    .menu { display: none; }
+    .desktop { display: flex; }
+    .v-split .side { display: flex; }
+    .v-split .bar { display: grid; grid-template-columns: 1fr auto 1fr; }
+    .v-split .brand { justify-self: center; }
+    .v-split .desktop { justify-self: end; }
+    .v-centered .bar { flex-direction: column; gap: .5rem; padding-block: .75rem; }
+  }
+</style>

@@ -1,0 +1,18 @@
+---
+import { renderRichText } from './render.ts';
+import type { RichTextDoc } from './schema.ts';
+
+interface Props { doc: RichTextDoc; class?: string; field?: string }
+const { doc, class: cls, field } = Astro.props;
+---
+<div class:list={['prose', cls]} data-field={field} set:html={renderRichText(doc)} />
+<style>
+  .prose { display: grid; gap: .9em; }
+  .prose :global(h2) { font-size: calc(1rem * var(--heading-scale) * var(--heading-scale)); margin-top: .5em; }
+  .prose :global(h3) { font-size: calc(1rem * var(--heading-scale)); margin-top: .25em; }
+  .prose :global(ul), .prose :global(ol) { margin: 0; padding-left: 1.4em; display: grid; gap: .35em; }
+  .prose :global(blockquote) { margin: 0; padding-left: 1em; border-left: 3px solid var(--color-accent); color: var(--section-muted); font-style: italic; }
+  .prose :global(a) { color: var(--color-primary); text-underline-offset: .2em; }
+  .theme-brand .prose :global(a), .theme-dark .prose :global(a) { color: inherit; }
+  .prose :global(code) { font-family: var(--font-mono, ui-monospace, monospace); font-size: .9em; background: color-mix(in srgb, currentColor 8%, transparent); padding: .1em .35em; border-radius: var(--radius-sm); }
+</style>

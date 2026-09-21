@@ -1,0 +1,45 @@
+---
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { ServicesProps } from './schema.ts';
+
+type Props = SectionRenderProps<ServicesProps>;
+const { props: p, section, ctx } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ul class="items" data-field="items">
+    {p.items.map((it) => {
+      const href = it.link ? ctx.href(it.link) : undefined;
+      return (
+        <li class:list={['item', p.variant !== 'list' && 'card']}>
+          {p.variant === 'image-cards' && it.image && <div class="media"><Picture image={it.image} sizes="(min-width: 900px) 33vw, 100vw" /></div>}
+          <div class="body">
+            <div class="row">
+              <h3 class="t-h3">{href ? <a href={href}>{it.title}</a> : it.title}</h3>
+              {it.price && <span class="price">{it.price}</span>}
+            </div>
+            {it.description && <p class="muted">{it.description}</p>}
+          </div>
+        </li>
+      );
+    })}
+  </ul>
+</SectionFrame>
+<style>
+  .items { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; }
+  .item { display: grid; gap: 1rem; align-content: start; }
+  .body { display: grid; gap: .5rem; }
+  .row { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+  .row a { color: inherit; text-decoration: none; }
+  .row a:hover { text-decoration: underline; text-underline-offset: .2em; }
+  .price { font-weight: 600; white-space: nowrap; color: var(--color-primary); }
+  .theme-brand .price, .theme-dark .price { color: inherit; }
+  .media { aspect-ratio: 4 / 3; margin: calc(var(--card-spacing) * -1) calc(var(--card-spacing) * -1) 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .v-list .items { gap: 0; }
+  .v-list .item { padding-block: 1rem; border-bottom: 1px solid var(--section-border); }
+  .v-list .item:first-child { border-top: 1px solid var(--section-border); }
+  @media (min-width: 900px) { .v-cards .items, .v-image-cards .items { grid-template-columns: repeat(3, 1fr); } }
+</style>

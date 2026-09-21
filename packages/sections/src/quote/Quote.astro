@@ -1,0 +1,33 @@
+---
+import Picture from '../primitives/Picture.astro';
+import SectionFrame from '../primitives/SectionFrame.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { QuoteProps } from './schema.ts';
+
+type Props = SectionRenderProps<QuoteProps>;
+const { props: p, section } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <figure class:list={['quote', p.variant === 'card' && 'card']}>
+    <blockquote>
+      <p class:list={[p.variant === 'large' ? 't-h1' : 't-h3']} data-field="text">“{p.text}”</p>
+    </blockquote>
+    {(p.author || p.role || p.image) && (
+      <figcaption>
+        {p.image && <span class="avatar"><Picture image={p.image} sizes="56px" field="image" /></span>}
+        <span>
+          {p.author && <strong data-field="author">{p.author}</strong>}
+          {p.role && <span class="muted" data-field="role"> · {p.role}</span>}
+        </span>
+      </figcaption>
+    )}
+  </figure>
+</SectionFrame>
+<style>
+  .quote { margin: 0; display: grid; gap: 1.25rem; max-width: 52rem; margin-inline: auto; text-align: center; }
+  blockquote { margin: 0; font-family: var(--font-heading); font-weight: var(--heading-weight); line-height: 1.25; text-wrap: balance; }
+  figcaption { display: flex; align-items: center; justify-content: center; gap: .75rem; font-size: .9375rem; }
+  .avatar { display: inline-block; width: 3rem; height: 3rem; border-radius: 999px; overflow: hidden; }
+  .avatar :global(img) { width: 100%; height: 100%; object-fit: cover; }
+  .v-card .quote { padding: calc(var(--card-spacing) * 1.5); }
+</style>

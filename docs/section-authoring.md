@@ -55,6 +55,18 @@ those from `capabilities`.
 Thumbnail DSL: one string per row, `|` separates columns, tokens `E`yebrow `H`eading `T`ext `B`utton `M`edia
 `C`ard `L`ogo `I`con, `*` prefix = background media row.
 
+### Controls
+
+`text`, `textarea`, `number`, `select`, `segmented`, `toggle`, `image`, `button`, `link`, `icon` (curated set in
+`primitives/icons.ts`), `richtext` (constrained ProseMirror JSON, see `rich-text/schema.ts`) and `list`.
+
+A `list` field describes repeatable items: `itemLabel`, `fields` (paths relative to the item), `titlePath`, `max`
+and `newItem()` which must satisfy the item schema (tested for every section). Lists nest (see Menu → categories →
+dishes). A list with no `fields` edits plain strings (Pricing → included features).
+
+Reusable helpers in `shared.ts`: `sectionIntroFields` + `introInspectorGroup` (eyebrow/heading/description/align),
+`textField`, `textareaField`, `imageField`, `linkField`, `iconField`, `navLinkSchema`.
+
 ## 3. Register — `src/index.ts`
 
 Export the definition and add it to `new SectionRegistry([...])`.

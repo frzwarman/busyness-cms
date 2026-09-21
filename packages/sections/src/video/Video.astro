@@ -1,0 +1,32 @@
+---
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import { embedFor, type VideoProps } from './schema.ts';
+
+type Props = SectionRenderProps<VideoProps>;
+const { props: p, section } = Astro.props;
+const embed = embedFor(p.url);
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} bleed={p.variant === 'full-width'} class:list={[`v-${p.variant}`]}>
+  <div class:list={[p.variant === 'full-width' && 'container']}>
+    <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  </div>
+  <figure class="video" data-field="url">
+    {embed?.kind === 'file' ? (
+      <video controls preload="none" poster={p.poster?.src} src={embed.src} aria-label={p.caption || 'Video'} />
+    ) : embed ? (
+      <iframe src={embed.src} title={p.heading || p.caption || 'Video'} loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" />
+    ) : (
+      <p class="muted">This video link is not supported.</p>
+    )}
+    {p.caption && <figcaption class="muted container">{p.caption}</figcaption>}
+  </figure>
+</SectionFrame>
+<style>
+  .video { margin: 0; display: grid; gap: .75rem; }
+  .video iframe, .video video { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: var(--radius-lg); background: #000; }
+  .v-full-width .video iframe, .v-full-width .video video { border-radius: 0; }
+  .v-inline .video { max-width: 56rem; margin-inline: auto; }
+  figcaption { font-size: .875rem; text-align: center; }
+</style>

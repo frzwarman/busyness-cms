@@ -1,4 +1,5 @@
 import { defineSection } from '../registry/define.ts';
+import { richTextFromPlain } from '../rich-text/schema.ts';
 import { imageTextSchema } from './schema.ts';
 
 export const imageTextDefinition = defineSection({
@@ -6,13 +7,15 @@ export const imageTextDefinition = defineSection({
   title: 'Image + Text',
   description: 'A story block: one image beside a heading, paragraphs and an optional button.',
   category: 'content',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: imageTextSchema,
   defaults: {
     variant: 'image-left',
     eyebrow: 'Our story',
     heading: 'Built by people who care about the details',
-    body: 'Share what makes your business different. Two or three short paragraphs work best.\n\nKeep the language concrete: what you do, how you do it, and why it matters to your customers.',
+    body: richTextFromPlain(
+      'Share what makes your business different. Two or three short paragraphs work best.\n\nKeep the language concrete: what you do, how you do it, and why it matters to your customers.',
+    ),
     image: null,
     imageRatio: 'landscape',
     cta: null,
@@ -36,14 +39,7 @@ export const imageTextDefinition = defineSection({
       fields: [
         { path: 'eyebrow', label: 'Eyebrow', control: 'text', maxLength: 80 },
         { path: 'heading', label: 'Heading', control: 'textarea', rows: 2, maxLength: 160 },
-        {
-          path: 'body',
-          label: 'Body',
-          description: 'Leave a blank line between paragraphs.',
-          control: 'textarea',
-          rows: 8,
-          maxLength: 4000,
-        },
+        { path: 'body', label: 'Body', control: 'richtext' },
       ],
     },
     {
@@ -67,6 +63,17 @@ export const imageTextDefinition = defineSection({
       id: 'button',
       label: 'Button',
       fields: [{ path: 'cta', label: 'Button', control: 'button' }],
+    },
+  ],
+  migrations: [
+    {
+      // v1 stored `body` as plain text with blank lines between paragraphs; v2 stores constrained rich text.
+      from: 1,
+      to: 2,
+      migrate: ({ body, ...rest }) => ({
+        ...rest,
+        body: richTextFromPlain(typeof body === 'string' ? body : ''),
+      }),
     },
   ],
   performance: { expectedImages: 1 },

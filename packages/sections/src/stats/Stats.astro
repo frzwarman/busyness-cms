@@ -1,0 +1,31 @@
+---
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { StatsProps } from './schema.ts';
+
+type Props = SectionRenderProps<StatsProps>;
+const { props: p, section } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`, `count-${p.items.length}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <dl class="stats" data-field="items">
+    {p.items.map((it) => (
+      <div class:list={['stat', p.variant === 'cards' && 'card']}>
+        <dd class="value t-h1">{it.value}</dd>
+        <dt class="label">{it.label}</dt>
+        {it.description && <dd class="muted small">{it.description}</dd>}
+      </div>
+    ))}
+  </dl>
+</SectionFrame>
+<style>
+  .stats { margin: 0; display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); text-align: center; }
+  .stat { display: grid; gap: .25rem; }
+  .value { margin: 0; font-family: var(--font-heading); font-weight: var(--heading-weight); color: var(--color-primary); }
+  .theme-brand .value, .theme-dark .value { color: inherit; }
+  .label { font-weight: 600; }
+  .small { font-size: .875rem; margin: 0; }
+  .v-grid .stats { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 700px) { .v-grid .stats { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); } }
+</style>

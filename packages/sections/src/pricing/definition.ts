@@ -1,0 +1,117 @@
+import { defineSection } from '../registry/define.ts';
+import { introInspectorGroup, textareaField, textField } from '../shared.ts';
+import { pricingSchema } from './schema.ts';
+
+export const pricingDefinition = defineSection({
+  type: 'pricing',
+  title: 'Pricing',
+  description: 'Plans or packages side by side, with a highlighted recommendation.',
+  category: 'business',
+  schemaVersion: 1,
+  schema: pricingSchema,
+  defaults: {
+    variant: 'cards',
+    eyebrow: 'Pricing',
+    heading: 'Simple, honest prices',
+    description: '',
+    align: 'center',
+    plans: [
+      {
+        name: 'Starter',
+        price: 'Rp 1.5M',
+        period: '/ month',
+        description: 'For a single location.',
+        features: ['1 site', 'Weekly updates', 'Email support'],
+        cta: {
+          label: 'Choose Starter',
+          link: { kind: 'anchor', anchor: 'contact' },
+          style: 'outline',
+        },
+        highlighted: false,
+        badge: '',
+      },
+      {
+        name: 'Growth',
+        price: 'Rp 3.5M',
+        period: '/ month',
+        description: 'For growing teams.',
+        features: ['3 sites', 'Unlimited updates', 'Priority support', 'Monthly review'],
+        cta: {
+          label: 'Choose Growth',
+          link: { kind: 'anchor', anchor: 'contact' },
+          style: 'filled',
+        },
+        highlighted: true,
+        badge: 'Most popular',
+      },
+      {
+        name: 'Custom',
+        price: 'Let’s talk',
+        period: '',
+        description: 'For multi-brand groups.',
+        features: ['Everything in Growth', 'Dedicated manager'],
+        cta: { label: 'Contact us', link: { kind: 'anchor', anchor: 'contact' }, style: 'outline' },
+        highlighted: false,
+        badge: '',
+      },
+    ],
+    theme: 'light',
+    spacing: 'standard',
+  },
+  variants: [
+    { value: 'cards', label: 'Cards', thumbnail: ['C | C | C'] },
+    {
+      value: 'compact',
+      label: 'Compact',
+      description: 'Dense rows',
+      thumbnail: ['H T B', 'H T B'],
+    },
+  ],
+  inspector: [
+    introInspectorGroup,
+    {
+      id: 'plans',
+      label: 'Plans',
+      fields: [
+        {
+          path: 'plans',
+          label: 'Plans',
+          control: 'list',
+          itemLabel: 'Plan',
+          titlePath: 'name',
+          max: 4,
+          fields: [
+            textField('name', 'Name', 60),
+            textField('price', 'Price', 30),
+            textField('period', 'Period (e.g. / month)', 30),
+            textareaField('description', 'Description', 2, 200),
+            {
+              path: 'features',
+              label: 'Included',
+              control: 'list',
+              itemLabel: 'Item',
+              max: 12,
+              fields: [],
+              newItem: () => 'New benefit' as unknown as Record<string, unknown>,
+            },
+            { path: 'badge', label: 'Badge', control: 'text', maxLength: 24 },
+            { path: 'highlighted', label: 'Highlight this plan', control: 'toggle' },
+            { path: 'cta', label: 'Button', control: 'button' },
+          ],
+          newItem: () => ({
+            name: 'New plan',
+            price: 'Rp 0',
+            period: '',
+            description: '',
+            features: [],
+            cta: null,
+            highlighted: false,
+            badge: '',
+          }),
+        },
+      ],
+    },
+  ],
+  recommendedFor: ['saas', 'agency', 'gym', 'freelancer'],
+  keywords: ['plans', 'packages', 'prices', 'tiers'],
+});

@@ -1,0 +1,34 @@
+---
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { ProcessProps } from './schema.ts';
+
+type Props = SectionRenderProps<ProcessProps>;
+const { props: p, section } = Astro.props;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.align} />
+  <ol class="steps" data-field="steps">
+    {p.steps.map((s, i) => (
+      <li class:list={['step', p.variant === 'cards' && 'card']}>
+        <span class="num" aria-hidden="true">{i + 1}</span>
+        <div class="body">
+          <h3 class="t-h3">{s.title}</h3>
+          {s.description && <p class="muted">{s.description}</p>}
+        </div>
+      </li>
+    ))}
+  </ol>
+</SectionFrame>
+<style>
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem; counter-reset: step; }
+  .step { display: grid; gap: 1rem; align-content: start; }
+  .body { display: grid; gap: .5rem; }
+  .num { display: inline-grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 999px; background: var(--color-primary); color: var(--color-primary-contrast); font-weight: 700; font-family: var(--font-heading); }
+  .theme-brand .num { background: var(--color-primary-contrast); color: var(--color-primary); }
+  .align-center + .steps .step { text-align: center; justify-items: center; }
+  .v-vertical .step { grid-template-columns: auto 1fr; text-align: left; justify-items: start; max-width: 40rem; }
+  .v-vertical .steps { gap: 1.5rem; }
+  @media (min-width: 700px) { .v-horizontal .steps, .v-cards .steps { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
+</style>

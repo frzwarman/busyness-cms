@@ -45,12 +45,27 @@ export type SelectOption = { value: string; label: string };
 export type InspectorControl =
   | { control: 'text'; maxLength?: number; placeholder?: string }
   | { control: 'textarea'; rows?: number; maxLength?: number }
+  | { control: 'number'; min?: number; max?: number; step?: number }
   | { control: 'select'; options: SelectOption[] }
   | { control: 'segmented'; options: SelectOption[] }
   | { control: 'toggle' }
   | { control: 'image' }
   | { control: 'button' }
-  | { control: 'link' };
+  | { control: 'link' }
+  | { control: 'icon' }
+  | { control: 'richtext' }
+  | {
+      control: 'list';
+      /** Singular label for items, e.g. "Feature". */
+      itemLabel: string;
+      /** Field paths are relative to the item. */
+      fields: InspectorField[];
+      /** Item prop shown as the row title in the editor. */
+      titlePath?: string;
+      max?: number;
+      /** Factory for a new item; must satisfy the item schema. */
+      newItem: () => Record<string, unknown>;
+    };
 
 export type InspectorField = {
   /** Dot path inside `props`, e.g. `primaryCta.label` */
