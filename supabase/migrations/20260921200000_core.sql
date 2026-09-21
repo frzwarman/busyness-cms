@@ -187,7 +187,7 @@ begin
   if v_site is null then raise exception 'page not found' using errcode = 'P0002'; end if;
   if not public.has_site_role(v_site, 'editor') then raise exception 'forbidden' using errcode = '42501'; end if;
   if v_rev <> p_expected_revision then
-    raise exception 'revision_conflict' using errcode = '40001', detail = v_rev::text;
+    raise exception 'revision_conflict' using errcode = 'P0001', detail = v_rev::text;
   end if;
   update public.page_drafts set document = p_document, revision = v_rev + 1, updated_at = now(), updated_by = auth.uid()
     where page_id = p_page;
