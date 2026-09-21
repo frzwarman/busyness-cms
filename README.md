@@ -230,3 +230,4 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 Demo imagery under `apps/renderer/public/demo/` consists of original SVG illustrations created for
 this repository (no third-party licenses). The Studio self-hosts the Geist variable font
 (`@fontsource-variable/geist`, SIL OFL 1.1). Public sites use system font stacks only.
+# busyness-cms
