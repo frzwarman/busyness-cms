@@ -1,0 +1,15 @@
+---
+/** Renders a published page payload. Shared by the root and /s/:site routes so there is one public code path. */
+import type { PublishedPage } from '@siteos/content-sdk';
+import Site from '../layouts/Site.astro';
+import { PUBLISHED_CACHE } from '../lib/content.ts';
+import PageRenderer from './PageRenderer.astro';
+
+interface Props { published: PublishedPage }
+const { published } = Astro.props;
+Astro.response.headers.set('Cache-Control', PUBLISHED_CACHE);
+Astro.response.headers.set('ETag', `"${published.versionId}"`);
+---
+<Site page={published.page} theme={published.site.theme} siteName={published.site.name}>
+  <PageRenderer page={published.page} theme={published.site.theme} pages={published.site.pages} mode="public" />
+</Site>

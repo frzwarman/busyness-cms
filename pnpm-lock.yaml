@@ -29,6 +29,9 @@ importers:
       '@astrojs/cloudflare':
         specifier: ^14.3.2
         version: 14.3.2(@types/node@24.13.6)(astro@7.3.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(wrangler@4.135.0(@types/node@24.13.6))(yaml@2.9.1)
+      '@siteos/content-sdk':
+        specifier: workspace:*
+        version: link:../../packages/content-sdk
       '@siteos/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
@@ -157,6 +160,25 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.1
+        version: 5.0.1(@types/node@24.13.6)(jsdom@29.1.1)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/content-sdk:
+    dependencies:
+      '@siteos/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@supabase/supabase-js':
+        specifier: ^2.116.0
+        version: 2.116.0
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
       vitest:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@24.13.6)(jsdom@29.1.1)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))

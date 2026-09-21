@@ -121,13 +121,19 @@ test('undo reverts a coalesced typing burst in one step', async ({ page }) => {
   await expect(heading).toHaveValue('One two');
 });
 
-test('the public route renders the same sections without editor scripts', async ({ request }) => {
-  const res = await request.get('http://localhost:4321/');
+test('the public route renders the same sections without editor scripts', async ({
+  page,
+  request,
+}) => {
+  await openEditor(page);
+  const openSite = page.getByRole('link', { name: /Open site/ });
+  if ((await openSite.count()) === 0)
+    test.skip(true, 'Nothing published yet for this site; covered by milestone-3.spec.ts');
+  const res = await request.get((await openSite.getAttribute('href')) as string);
   expect(res.status()).toBe(200);
   const html = await res.text();
   expect(html).toContain('data-section-type="hero"');
   // No editor protocol, preview shell or Studio code leaks into public markup.
-  // (Astro's dev server injects its own toolbar scripts; the zero-JS contract is checked on the built output in CI later.)
   expect(html).not.toContain('siteos:');
   expect(html).not.toContain('/preview');
   expect(html).not.toContain('DRAFT PREVIEW');

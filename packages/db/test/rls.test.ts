@@ -9,8 +9,13 @@ import {
   type Db,
   DraftConflictError,
   getDraft,
+  getPublishState,
   listPages,
   listSites,
+  listVersions,
+  type PageVersion,
+  publishPage,
+  restoreVersion,
   saveDraft,
   slugForSite,
 } from '../src/index.ts';
@@ -134,5 +139,116 @@ describe.skipIf(!enabled)('RLS isolation', () => {
     const stored = await getDraft(a, pageA);
     expect(stored?.document.title).toBe('Home v2');
     expect(stored?.revision).toBe(2);
+  });
+});
+
+describe.skipIf(!enabled)('publishing', () => {
+  const admin = enabled
+    ? createClient(url as string, secret as string, { auth: { persistSession: false } })
+    : null;
+  const made: string[] = [];
+  let owner: Db;
+  let editor: Db;
+  let anon: Db;
+  let siteId = '';
+  let siteSlug = '';
+  let pageId = '';
+
+  async function user(tag: string) {
+    const email = `pub-${tag}-${Date.now()}@example.test`;
+    const password = `Pw-${crypto.randomUUID()}`;
+    const { data, error } = await (admin as NonNullable<typeof admin>).auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (error || !data.user) throw error ?? new Error('no user');
+    made.push(data.user.id);
+    const db = createSupabaseClient(url as string, pub as string);
+    await db.auth.signInWithPassword({ email, password });
+    return { db, id: data.user.id };
+  }
+
+  beforeAll(async () => {
+    const o = await user('owner');
+    const e = await user('editor');
+    owner = o.db;
+    editor = e.db;
+    anon = createSupabaseClient(url as string, pub as string);
+    siteSlug = slugForSite('pub site');
+    siteId = await createSite(owner, { name: 'Pub Site', slug: siteSlug, theme: demoTheme });
+    pageId = await createPage(
+      owner,
+      siteId,
+      pageDocumentSchema.parse({ id: 'x', slug: '/', title: 'Home v1', sections: [] }),
+    );
+    await owner.from('site_members').insert({ site_id: siteId, user_id: e.id, role: 'editor' });
+  }, 60_000);
+
+  afterAll(async () => {
+    for (const id of made) await (admin as NonNullable<typeof admin>).auth.admin.deleteUser(id);
+  });
+
+  it('nothing is public before the first publish', async () => {
+    const { data } = await anon.rpc('get_published_page', { p_site_slug: siteSlug, p_slug: '/' });
+    expect(data).toBeNull();
+    const { data: site } = await anon.rpc('get_published_site', { p_site_slug: siteSlug });
+    expect(site).toBeNull();
+  });
+
+  it('editors cannot publish; owners can', async () => {
+    await expect(publishPage(editor, pageId)).rejects.toThrow(/forbidden/);
+    const v1 = await publishPage(owner, pageId, 'first');
+    expect(v1.number).toBe(1);
+    const state = await getPublishState(owner, pageId);
+    expect(state.publishedNumber).toBe(1);
+  });
+
+  it('anon reads the published snapshot, never the draft', async () => {
+    const draft = await getDraft(owner, pageId);
+    await saveDraft(owner, pageId, draft?.revision ?? 1, {
+      ...(draft?.document as ReturnType<typeof pageDocumentSchema.parse>),
+      title: 'Home v2 (draft)',
+    });
+    const { data } = await anon.rpc('get_published_page', { p_site_slug: siteSlug, p_slug: '/' });
+    const payload = data as {
+      page: { title: string };
+      versionNumber: number;
+      site: { pages: unknown[] };
+    };
+    expect(payload.page.title).toBe('Home v1');
+    expect(payload.versionNumber).toBe(1);
+    expect(payload.site.pages).toHaveLength(1);
+    // anon has no table access at all
+    const direct = await anon.from('page_drafts').select('page_id');
+    expect(direct.data ?? []).toEqual([]);
+    const versions = await anon.from('page_versions').select('id');
+    expect(versions.data ?? []).toEqual([]);
+  });
+
+  it('publishing again creates v2 and the old version stays immutable', async () => {
+    const v2 = await publishPage(owner, pageId);
+    expect(v2.number).toBe(2);
+    const versions = await listVersions(owner, pageId);
+    expect(versions.map((v) => v.number)).toEqual([2, 1]);
+    const tamper = await owner
+      .from('page_versions')
+      .update({ note: 'x' })
+      .eq('id', versions[1]?.id as string)
+      .select();
+    expect(tamper.data ?? []).toEqual([]);
+    const { data } = await anon.rpc('get_published_page', { p_site_slug: siteSlug, p_slug: '/' });
+    expect((data as { page: { title: string } }).page.title).toBe('Home v2 (draft)');
+  });
+
+  it('restore copies an old version into the draft without touching history or the live pointer', async () => {
+    const versions = await listVersions(owner, pageId);
+    const v1 = versions.find((v) => v.number === 1) as PageVersion;
+    const rev = await restoreVersion(editor, v1.id);
+    const draft = await getDraft(owner, pageId);
+    expect(draft?.revision).toBe(rev);
+    expect(draft?.document.title).toBe('Home v1');
+    expect((await listVersions(owner, pageId)).length).toBe(2);
+    expect((await getPublishState(owner, pageId)).publishedNumber).toBe(2);
   });
 });

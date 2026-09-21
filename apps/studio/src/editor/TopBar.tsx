@@ -1,9 +1,11 @@
 import { selectors } from '@siteos/editor-core';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import {
   AlertTriangle,
   Check,
   ExternalLink,
+  History,
   Loader2,
   LogOut,
   Monitor,
@@ -12,12 +14,14 @@ import {
   PanelRight,
   Redo2,
   RefreshCw,
+  Rocket,
   Smartphone,
   Sun,
   Tablet,
   Undo2,
   UserRound,
 } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -33,6 +37,9 @@ import { PREVIEW_ORIGIN } from '@/lib/preview-bridge';
 import { useStudioTheme } from '@/lib/studio-theme';
 import { cn } from '@/lib/utils';
 import { type Device, useEditor } from './EditorProvider';
+import { HistorySheet } from './HistorySheet';
+import { PublishDialog } from './PublishDialog';
+import { publishStateQuery, relativeTime } from './publish-queries';
 
 const saveLabels = {
   saved: 'Saved',
@@ -49,8 +56,24 @@ export function TopBar({
   onOpenLeft: () => void;
   onOpenRight: () => void;
 }) {
-  const { state, dispatch, saveStatus, saveError, device, setDevice, siteName, canEdit } =
-    useEditor();
+  const {
+    state,
+    dispatch,
+    saveStatus,
+    saveError,
+    device,
+    setDevice,
+    siteName,
+    siteSlug,
+    canEdit,
+    canPublish,
+  } = useEditor();
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { data: live } = useQuery(publishStateQuery(state.document.id));
+  const liveDiffers = live?.publishedDocument
+    ? JSON.stringify(live.publishedDocument) !== JSON.stringify(state.document)
+    : true;
   const { dark, toggle } = useStudioTheme();
 
   return (
@@ -146,15 +169,60 @@ export function TopBar({
           </TooltipTrigger>
           <TooltipContent>Studio appearance</TooltipContent>
         </Tooltip>
-        <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
-          <a
-            href={`${PREVIEW_ORIGIN}${state.document.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Open site <ExternalLink data-icon="inline-end" />
-          </a>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setHistoryOpen(true)}
+              aria-label="Version history"
+            >
+              <History />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Version history</TooltipContent>
+        </Tooltip>
+        {live?.publishedVersionId ? (
+          <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
+            <a
+              href={`${PREVIEW_ORIGIN}/s/${siteSlug}${state.document.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open site <ExternalLink data-icon="inline-end" />
+            </a>
+          </Button>
+        ) : null}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button
+                size="sm"
+                onClick={() => setPublishOpen(true)}
+                disabled={!canPublish}
+                className={cn(!liveDiffers && 'opacity-80')}
+              >
+                <Rocket data-icon="inline-start" />{' '}
+                {live?.publishedVersionId ? 'Publish' : 'Publish'}
+                {live?.publishedNumber && liveDiffers && (
+                  <span
+                    className="ml-1 size-1.5 rounded-full bg-amber-400"
+                    aria-label="Unpublished changes"
+                  />
+                )}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {!canPublish
+              ? 'Your role can edit but not publish. Ask an owner, admin or publisher.'
+              : live?.publishedAt
+                ? `Live: v${live.publishedNumber} · ${relativeTime(live.publishedAt)}${liveDiffers ? ' · unpublished changes' : ''}`
+                : 'Not published yet'}
+          </TooltipContent>
+        </Tooltip>
+        <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} />
+        <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Account">

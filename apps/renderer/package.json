@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.2",
+    "@siteos/content-sdk": "workspace:*",
     "@siteos/design-system": "workspace:*",
     "@siteos/schemas": "workspace:*",
     "@siteos/sections": "workspace:*",

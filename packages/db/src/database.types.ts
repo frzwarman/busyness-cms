@@ -138,10 +138,63 @@ export type Database = {
           },
         ];
       };
+      page_versions: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          document: Json;
+          id: string;
+          note: string | null;
+          number: number;
+          page_id: string;
+          site_id: string;
+          source: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          document: Json;
+          id?: string;
+          note?: string | null;
+          number: number;
+          page_id: string;
+          site_id: string;
+          source?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          document?: Json;
+          id?: string;
+          note?: string | null;
+          number?: number;
+          page_id?: string;
+          site_id?: string;
+          source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'page_versions_page_id_fkey';
+            columns: ['page_id'];
+            isOneToOne: false;
+            referencedRelation: 'pages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'page_versions_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       pages: {
         Row: {
           created_at: string;
           id: string;
+          published_at: string | null;
+          published_version_id: string | null;
           site_id: string;
           slug: string;
           sort_order: number;
@@ -151,6 +204,8 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          published_at?: string | null;
+          published_version_id?: string | null;
           site_id: string;
           slug: string;
           sort_order?: number;
@@ -160,6 +215,8 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          published_at?: string | null;
+          published_version_id?: string | null;
           site_id?: string;
           slug?: string;
           sort_order?: number;
@@ -167,6 +224,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'pages_published_version_id_fkey';
+            columns: ['published_version_id'];
+            isOneToOne: false;
+            referencedRelation: 'page_versions';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'pages_site_id_fkey';
             columns: ['site_id'];
@@ -212,6 +276,7 @@ export type Database = {
           id: string;
           name: string;
           organization_id: string;
+          published_theme: Json | null;
           slug: string;
           theme: Json;
           updated_at: string;
@@ -222,6 +287,7 @@ export type Database = {
           id?: string;
           name: string;
           organization_id: string;
+          published_theme?: Json | null;
           slug: string;
           theme: Json;
           updated_at?: string;
@@ -232,6 +298,7 @@ export type Database = {
           id?: string;
           name?: string;
           organization_id?: string;
+          published_theme?: Json | null;
           slug?: string;
           theme?: Json;
           updated_at?: string;
@@ -270,6 +337,11 @@ export type Database = {
         Returns: string;
       };
       delete_page: { Args: { p_page: string }; Returns: undefined };
+      get_published_page: {
+        Args: { p_site_slug: string; p_slug: string };
+        Returns: Json;
+      };
+      get_published_site: { Args: { p_site_slug: string }; Returns: Json };
       has_site_role: {
         Args: {
           p_min: Database['public']['Enums']['member_role'];
@@ -277,6 +349,14 @@ export type Database = {
         };
         Returns: boolean;
       };
+      publish_page: {
+        Args: { p_note?: string; p_page: string };
+        Returns: {
+          number: number;
+          version_id: string;
+        }[];
+      };
+      restore_version: { Args: { p_version: string }; Returns: number };
       role_rank: {
         Args: { r: Database['public']['Enums']['member_role'] };
         Returns: number;
@@ -289,6 +369,7 @@ export type Database = {
         Args: { p_site: string };
         Returns: Database['public']['Enums']['member_role'];
       };
+      unpublish_page: { Args: { p_page: string }; Returns: undefined };
       update_site_theme: {
         Args: { p_site: string; p_theme: Json };
         Returns: undefined;

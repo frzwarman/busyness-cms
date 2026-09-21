@@ -17,6 +17,7 @@ function wrap(children: ReactNode) {
         pages={demoPages}
         siteName="Test"
         siteId="site_test"
+        siteSlug="test-site"
         persistence={{
           initialRevision: 1,
           savePage: async (_d, rev) => rev + 1,

@@ -1,0 +1,8 @@
+---
+import PublicPage from '../../../components/PublicPage.astro';
+import { content, normalizeSlug } from '../../../lib/content.ts';
+
+const published = await content().getPage(Astro.params.site ?? '', normalizeSlug(Astro.params.slug));
+if (!published) return new Response('Not found', { status: 404 });
+---
+<PublicPage published={published} />

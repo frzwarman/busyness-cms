@@ -127,8 +127,10 @@ function EditorRoute() {
       pages={pages}
       siteName={site.name}
       siteId={siteId}
+      siteSlug={site.slug}
       persistence={persistence}
       canEdit={canEdit}
+      canPublish={['owner', 'admin', 'publisher'].includes(site.role)}
     >
       <EditorShell />
     </EditorProvider>

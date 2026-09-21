@@ -155,3 +155,100 @@ export function slugForSite(name: string): string {
       .slice(0, 40) || 'site';
   return `${base}-${Math.random().toString(36).slice(2, 6)}`;
 }
+
+// ---------------------------------------------------------------------------
+// Publishing (Milestone 3)
+// ---------------------------------------------------------------------------
+export type PageVersion = {
+  id: string;
+  number: number;
+  document: PageDocument;
+  note: string | null;
+  source: 'publish' | 'restore';
+  createdAt: string;
+  createdBy: string | null;
+};
+
+export type PublishState = {
+  publishedVersionId: string | null;
+  publishedAt: string | null;
+  publishedNumber: number | null;
+  publishedDocument: PageDocument | null;
+};
+
+/** Publisher role or above. Returns the new version. */
+export async function publishPage(
+  db: Db,
+  pageId: string,
+  note?: string,
+): Promise<{ versionId: string; number: number }> {
+  const rows = unwrap(
+    await db.rpc('publish_page', { p_page: pageId, p_note: note ?? undefined }),
+    'Publishing',
+  );
+  const row = rows[0];
+  if (!row) throw new Error('Publishing: no version returned');
+  return { versionId: row.version_id, number: row.number };
+}
+
+export async function unpublishPage(db: Db, pageId: string): Promise<void> {
+  const { error } = await db.rpc('unpublish_page', { p_page: pageId });
+  if (error) throw new Error(`Unpublishing: ${error.message}`);
+}
+
+/** Copies a version into the draft as a new revision and returns that revision. */
+export async function restoreVersion(db: Db, versionId: string): Promise<number> {
+  return unwrap(await db.rpc('restore_version', { p_version: versionId }), 'Restoring version');
+}
+
+export async function listVersions(db: Db, pageId: string): Promise<PageVersion[]> {
+  const rows = unwrap(
+    await db
+      .from('page_versions')
+      .select('id, number, document, note, source, created_at, created_by')
+      .eq('page_id', pageId)
+      .order('number', { ascending: false }),
+    'Loading versions',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    number: r.number,
+    document: pageDocumentSchema.parse(r.document),
+    note: r.note,
+    source: r.source as PageVersion['source'],
+    createdAt: r.created_at,
+    createdBy: r.created_by,
+  }));
+}
+
+export async function getPublishState(db: Db, pageId: string): Promise<PublishState> {
+  // Single-row responses are unions PostgREST types as {data|null, error|null}; destructure instead of unwrap().
+  const pageRes = await db
+    .from('pages')
+    .select('published_version_id, published_at')
+    .eq('id', pageId)
+    .maybeSingle();
+  if (pageRes.error) throw new Error(`Loading publish state: ${pageRes.error.message}`);
+  const page = pageRes.data;
+  if (!page) throw new Error('Loading publish state: page not found');
+  if (!page.published_version_id)
+    return {
+      publishedVersionId: null,
+      publishedAt: null,
+      publishedNumber: null,
+      publishedDocument: null,
+    };
+  const versionRes = await db
+    .from('page_versions')
+    .select('number, document')
+    .eq('id', page.published_version_id)
+    .single();
+  if (versionRes.error) throw new Error(`Loading published version: ${versionRes.error.message}`);
+  const version = versionRes.data;
+  return {
+    publishedVersionId: page.published_version_id,
+    publishedAt: page.published_at,
+    publishedNumber: version.number,
+    publishedDocument: pageDocumentSchema.parse(version.document),
+  };
+}

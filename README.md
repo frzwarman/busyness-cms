@@ -9,7 +9,7 @@ lightweight **Astro** site. Users edit business intent (variant, alignment, them
 BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
 ```
 
-> **Status:** Milestones 1 (architecture foundation) and 2 (database + auth) are complete. See
+> **Status:** Milestones 1 (architecture foundation), 2 (database + auth) and 3 (publishing) are complete. See
 > [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
 
 ## What works today
@@ -29,6 +29,10 @@ BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS
   row-level security, roles (owner/admin/editor/publisher/viewer), site creation with seeded demo pages.
 - Drafts persist to Postgres through `save_page_draft`, which rejects stale revisions instead of overwriting;
   the Studio shows “Changed elsewhere” with a reload action.
+- Publish creates an immutable `page_versions` row and moves the published pointer; the Publish dialog blocks on
+  invalid sections and lists human-readable changes since the live version. Version history with restore.
+- Public site and JSON content API (`/s/:site/*`, `/api/content/sites/:site/pages/*`) read published snapshots
+  only through anon-callable RPCs, with `s-maxage` caching and ETags (304 on `If-None-Match`).
 
 ## Quick start
 
@@ -158,7 +162,7 @@ Theme tokens (`colors`, `typography`, `shape`, `layout`) compile to stable CSS v
 Sections consume only these variables plus the `.section.theme-{light|surface|dark|brand}` surfaces.
 Switching a preset preserves every word of content. See [docs/design-system.md](docs/design-system.md).
 
-## Publishing lifecycle (designed; built in Milestone 3)
+## Publishing lifecycle
 
 ```mermaid
 flowchart LR
@@ -218,7 +222,10 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 
 ## Known limitations (Milestone 1)
 
-- No publish/version history yet — the public routes still render the in-repo demo fixtures (M3).
+- Cache invalidation on publish relies on short `s-maxage` (5 min) rather than an explicit purge; a Cloudflare
+  purge hook is a hardening item.
+- Public site routing is path-based (`/s/<site-slug>/…`) or a single default site via `DEFAULT_SITE_SLUG`;
+  platform subdomains are supported when `PUBLIC_PLATFORM_DOMAIN` is set, custom domains are not yet.
 - Invitations UI is not built; members are added via SQL/dashboard for now (owners/admins may insert `site_members`).
 - Three section types; the ~20-section library is M4.
 - Images are URL references; upload, variants, usage graph and duplicate detection are M5.
@@ -231,8 +238,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 |-----------|-------|--------|
 | 1 Architecture foundation | monorepo, registry, 3 sections, tokens, live preview, editor | **done** |
 | 2 Database + auth | Supabase Auth, orgs/sites/memberships, RLS, autosave with revisions | **done** |
-| 3 Publishing | immutable versions, publish, rollback, public content API, content SDK | next |
-| 4 Section library | ~20 sections on the registry | planned |
+| 3 Publishing | immutable versions, publish, rollback, public content API, content SDK | **done** |
+| 4 Section library | ~20 sections on the registry | next |
 | 5 Assets | R2 signed uploads, Web Worker resize, focal point, usage graph, dedupe | planned |
 | 6 Content + globals | reusable collections, navbar/footer globals, detach | planned |
 | 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox | planned |

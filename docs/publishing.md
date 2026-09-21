@@ -1,6 +1,6 @@
 # Publishing model
 
-Drafts and revisions exist today (Milestone 2). Versions, publish and the public API are Milestone 3.
+Built in Milestones 2–3. Everything below exists in `supabase/migrations`.
 
 ## Concepts
 
@@ -11,17 +11,20 @@ Drafts and revisions exist today (Milestone 2). Versions, publish and the public
 
 ## Publish algorithm
 
-1. Load draft; run `registry.normalizeDocument`; refuse if any `issues` (message names the sections).
-2. Resolve global sections and content references into the snapshot (so history is self-contained).
-3. Insert `page_versions` row; never update existing rows (trigger blocks UPDATE/DELETE).
-4. Update `pages.published_version_id` in the same transaction.
-5. Purge cache keys for `/api/content/sites/:site/pages/:slug`, the sitemap and any page linking to it.
-6. Insert `audit_logs` row: actor, `page.published`, entity id, version id.
+1. Studio: `registry.normalizeDocument(draft)`; the Publish button is blocked while any section is invalid, while a
+   save is in flight, or after a revision conflict. The dialog lists changes vs. the live version (`describeChanges`).
+2. `publish_page(page, note)` (publisher role or above): structural check of the document, insert
+   `page_versions` with the next per-page number, set `pages.published_version_id`/`published_at`, snapshot the
+   site theme into `sites.published_theme`, write `audit_logs` — one transaction.
+3. A trigger makes `page_versions` immutable (no UPDATE; DELETE only via `delete_page` cascade).
+4. Caches: published responses carry `s-maxage=300, stale-while-revalidate` and an ETag equal to the version id.
+   Explicit purge is a hardening item. Global sections and content references are resolved at publish time once
+   those features exist (Milestone 6).
 
 ## Rollback
 
-"Restore" copies a historical version's document into the draft (new revision). Publishing that draft creates
-a new version; history stays linear and old versions stay intact.
+`restore_version(version)` (editor role or above) copies the version's document into the draft as a new revision.
+The live pointer does not move until the next publish; history stays linear and old versions stay intact.
 
 ## Autosave and concurrency (built)
 
@@ -50,7 +53,15 @@ audit_logs
 
 All tables carry `site_id`; RLS policies check `site_members` for the current user and role.
 
-## Public content API
+## Public content
 
-`GET /api/content/sites/:siteSlug/pages/:slug` returns the published document only, with
-`Cache-Control: public, s-maxage=…` and an `ETag` derived from the version id. Draft data is never served.
+Two `security definer` RPCs are granted to `anon`: `get_published_site(slug)` and `get_published_page(site, slug)`.
+They join through `pages.published_version_id`, so a draft can never be returned; no table is readable by anon.
+`@siteos/content-sdk` wraps them (`createSupabaseContentSource`) and also offers an HTTP source for the JSON API:
+
+- `GET /api/content/sites/:site` → `{ id, name, slug, theme, pages[] }`
+- `GET /api/content/sites/:site/pages/*` → `{ versionId, versionNumber, publishedAt, page, site }`
+
+Both set `Cache-Control: public, max-age=0, s-maxage=300, stale-while-revalidate=86400` and an ETag; a matching
+`If-None-Match` returns 304. Public HTML routes: `/s/:site/*`, or `/*` for `DEFAULT_SITE_SLUG`, or a platform
+subdomain when `PUBLIC_PLATFORM_DOMAIN` is set (validated, never an arbitrary Host).

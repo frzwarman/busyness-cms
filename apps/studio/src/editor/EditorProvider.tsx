@@ -45,7 +45,9 @@ type EditorContextValue = {
   saveError: string | null;
   saveNow: () => void;
   siteId: string;
+  siteSlug: string;
   canEdit: boolean;
+  canPublish: boolean;
   device: Device;
   setDevice: (d: Device) => void;
   focusRequest: FocusRequest | null;
@@ -63,8 +65,10 @@ export function EditorProvider({
   pages,
   siteName,
   siteId,
+  siteSlug,
   persistence,
   canEdit = true,
+  canPublish = false,
   children,
 }: {
   page: PageDocument;
@@ -72,8 +76,10 @@ export function EditorProvider({
   pages: PageSummary[];
   siteName: string;
   siteId: string;
+  siteSlug: string;
   persistence: EditorPersistence;
   canEdit?: boolean;
+  canPublish?: boolean;
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, page, createEditorState);
@@ -194,7 +200,9 @@ export function EditorProvider({
       saveError,
       saveNow: () => void save(),
       siteId,
+      siteSlug,
       canEdit,
+      canPublish,
       device,
       setDevice,
       focusRequest,
@@ -212,7 +220,9 @@ export function EditorProvider({
       saveError,
       save,
       siteId,
+      siteSlug,
       canEdit,
+      canPublish,
       device,
       focusRequest,
       requestFocus,
