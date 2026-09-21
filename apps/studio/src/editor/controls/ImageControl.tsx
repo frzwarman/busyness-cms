@@ -78,9 +78,9 @@ export function ImageControl({
         className="relative aspect-[4/3] w-full overflow-hidden rounded bg-muted focus-visible:outline-2 focus-visible:outline-ring"
         aria-label={`Focal point at ${Math.round(value.focalX * 100)}% across, ${Math.round(value.focalY * 100)}% down. Click or use arrow keys to move it.`}
       >
-        {/* biome-ignore lint/a11y/useAltText: preview of the image being edited; the button carries the accessible name */}
         <img
           src={src}
+          alt=""
           className="h-full w-full object-cover"
           style={{ objectPosition: `${value.focalX * 100}% ${value.focalY * 100}%` }}
           onLoad={(e) =>
