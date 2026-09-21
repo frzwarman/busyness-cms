@@ -78,8 +78,8 @@ test('publishing controls what visitors see; drafts stay private; restore works'
   page.once('dialog', (d) => d.accept());
   const history = page.getByRole('dialog', { name: /Version history/ });
   const restoreButtons = history.getByRole('button', { name: /Restore to draft/ });
-  await expect(restoreButtons).toHaveCount(2);
-  await restoreButtons.nth(1).click(); // second row = previous version
+  await expect(restoreButtons.nth(1)).toBeVisible(); // versions accumulate across runs; row 2 = previous version
+  await restoreButtons.nth(1).click();
   await expect(page.getByLabel('Heading', { exact: true })).toHaveValue(liveText, {
     timeout: 20_000,
   });

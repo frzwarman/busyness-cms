@@ -108,6 +108,12 @@ function EditorRoute() {
     }),
     [pageId, siteId, draft?.revision],
   );
+  // Memoized: the provider reloads its state whenever this object identity changes, so it must only
+  // change when the draft itself does (not on unrelated re-renders such as the pages list refetching).
+  const normalized = useMemo(
+    () => (draft ? registry.normalizeDocument(draft.document) : null),
+    [draft],
+  );
   if (error)
     return (
       <p className="p-6 text-sm text-destructive">Could not load this page: {error.message}</p>
@@ -116,7 +122,8 @@ function EditorRoute() {
     return <p className="p-6 text-sm text-muted-foreground">Loading your draft…</p>;
   if (draft === null)
     return <p className="p-6 text-sm text-muted-foreground">This page no longer exists.</p>;
-  const { document, issues } = registry.normalizeDocument(draft.document);
+  if (!normalized) return null;
+  const { document, issues } = normalized;
   if (issues.length) console.warn('Sections kept but not editable:', issues);
   const canEdit = site.role !== 'viewer';
   return (

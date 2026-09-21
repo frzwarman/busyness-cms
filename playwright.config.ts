@@ -7,6 +7,9 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   timeout: 60_000,
   expect: { timeout: 10_000 },
+  // The suite signs in as one user and edits one site, so specs must not run concurrently.
+  workers: 1,
+  fullyParallel: false,
   retries: 0,
   reporter: [['list']],
   use: { baseURL: 'http://localhost:5180', trace: 'retain-on-failure' },

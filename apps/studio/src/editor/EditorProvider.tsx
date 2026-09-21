@@ -90,42 +90,48 @@ export function EditorProvider({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const inflight = useRef<PageDocument | null>(null);
   const revision = useRef(persistence.initialRevision);
+  // Autosave is serialized: a save never starts while another is in flight, so the expected revision
+  // is always current. The newest document wins; older in-flight snapshots can't mark a newer one saved.
+  const latestDoc = useRef(state.document);
+  latestDoc.current = state.document;
+  const lastSavedDoc = useRef<PageDocument>(page);
+  const statusRef = useRef<SaveStatus>('saved');
+  statusRef.current = saveStatus;
+  const chain = useRef<Promise<void>>(Promise.resolve());
 
-  // Reload when navigating to another page id.
-  useEffect(() => {
-    dispatch({ type: 'load', document: page });
-  }, [page]);
-
-  const save = useCallback(async () => {
-    const doc = state.document;
-    if (!canEdit || inflight.current === doc || saveStatus === 'conflict') return;
-    inflight.current = doc;
-    setSaveStatus('saving');
-    try {
-      const next = await persistence.savePage(doc, revision.current);
-      revision.current = next;
-      // Only mark saved if nothing changed while the request was in flight (no out-of-order overwrite).
-      if (inflight.current === doc) {
-        dispatch({ type: 'markSaved' });
-        setSaveStatus('saved');
-        setSaveError(null);
-        void queryClient.invalidateQueries({ queryKey: ['pages', siteId] });
+  const save = useCallback(() => {
+    if (!canEdit) return Promise.resolve();
+    const run = async () => {
+      const doc = latestDoc.current;
+      if (doc === lastSavedDoc.current || statusRef.current === 'conflict') return;
+      setSaveStatus('saving');
+      try {
+        const next = await persistence.savePage(doc, revision.current);
+        revision.current = next;
+        lastSavedDoc.current = doc;
+        if (latestDoc.current === doc) {
+          dispatch({ type: 'markSaved' });
+          setSaveStatus('saved');
+          setSaveError(null);
+          void queryClient.invalidateQueries({ queryKey: ['pages', siteId] });
+        } else {
+          setSaveStatus('unsaved'); // newer edits exist; the debounced effect saves them next
+        }
+      } catch (err) {
+        if (err instanceof DraftConflictError) {
+          // Never last-write-wins: stop autosaving and ask the user to reload.
+          setSaveStatus('conflict');
+          setSaveError(err.message);
+        } else {
+          setSaveStatus('error');
+          setSaveError(err instanceof Error ? err.message : 'Failed to save');
+        }
       }
-    } catch (err) {
-      if (err instanceof DraftConflictError) {
-        // Never last-write-wins: stop autosaving and ask the user to reload.
-        setSaveStatus('conflict');
-        setSaveError(err.message);
-      } else {
-        setSaveStatus('error');
-        setSaveError(err instanceof Error ? err.message : 'Failed to save');
-      }
-    } finally {
-      if (inflight.current === doc) inflight.current = null;
-    }
-  }, [state.document, queryClient, persistence, siteId, canEdit, saveStatus]);
+    };
+    chain.current = chain.current.then(run, run);
+    return chain.current;
+  }, [queryClient, persistence, siteId, canEdit]);
 
   useEffect(() => {
     if (state.dirty && saveStatus !== 'saving' && saveStatus !== 'conflict')
