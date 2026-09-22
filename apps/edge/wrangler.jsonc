@@ -5,7 +5,8 @@
   "compatibility_date": "2026-09-01",
   "r2_buckets": [{ "binding": "ASSETS", "bucket_name": "siteos-assets" }],
   "vars": {
-    // Non-secret configuration. Secrets (UPLOAD_SIGNING_SECRET) go in `wrangler secret put` / .dev.vars.
+    // Production, non-secret configuration; .dev.vars overrides these for `wrangler dev`.
+    // Secrets (UPLOAD_SIGNING_SECRET, CF_API_TOKEN) go in `wrangler secret put` / .dev.vars.
     "STUDIO_ORIGIN": "http://localhost:5180",
     "SUPABASE_URL": "",
     "SUPABASE_PUBLISHABLE_KEY": "",

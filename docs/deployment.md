@@ -86,6 +86,25 @@ needs only the static-assets binding; the Studio's `apps/studio/wrangler.jsonc` 
 SPA fallback. Sign in to the Studio, open a page and publish: the preview renders in the production renderer,
 uploads land in R2, and forms post to the edge worker.
 
+### Deploying from Git instead (Workers Builds)
+
+Cloudflare's Git integration must not run at the repository root: `wrangler deploy` there fails with "application
+detection logic has been run in the root of a workspace". Create **three Worker projects** connected to the same
+repository, one per app. Cloudflare detects the pnpm workspace and installs from the root on its own.
+
+| Worker | Root directory | Build command | Deploy command |
+|--------|----------------|---------------|----------------|
+| `siteos-edge` | `apps/edge` | *(none)* | `npx wrangler deploy` |
+| `siteos-renderer` | `apps/renderer` | `pnpm build` | `npx wrangler deploy` |
+| `siteos-studio` | `apps/studio` | `pnpm build` | `npx wrangler deploy` |
+
+`.env*` files are git-ignored, so the renderer and Studio read their values from **build variables** (Worker →
+Settings → Build → Variables and secrets): the same names as `.env.production` above. They are inlined at build
+time, so change a value and trigger a new build. The edge worker's non-secret config is committed in
+`apps/edge/wrangler.jsonc`; its secrets are set once under Settings → Variables and Secrets (or `wrangler secret
+put`). Use *build watch paths* (`apps/<app>/**`, `packages/**`) so a Studio-only commit does not redeploy the
+others.
+
 ### Domains
 
 - **One business, one domain.** Workers & Pages → siteos-renderer → Settings → Domains & Routes → add

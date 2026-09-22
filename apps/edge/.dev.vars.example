@@ -1,4 +1,6 @@
 # Copy to .dev.vars for `wrangler dev`. In production use `wrangler secret put UPLOAD_SIGNING_SECRET`.
+# Values here override the `vars` in wrangler.jsonc locally, so that file can hold the production origins.
+STUDIO_ORIGIN=http://localhost:5180
 UPLOAD_SIGNING_SECRET=change-me-to-a-long-random-string
 SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
