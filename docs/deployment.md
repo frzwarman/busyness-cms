@@ -11,23 +11,92 @@ pnpm dev
 | App | URL | Env |
 |-----|-----|-----|
 | Studio | http://localhost:5180 | `VITE_PREVIEW_ORIGIN=http://localhost:4321` |
-| Renderer | http://localhost:4321 | `PUBLIC_STUDIO_ORIGIN=http://localhost:5180` |
-
+| Renderer | http://localhost:4321 | `PUBLIC_STUDIO_ORIGIN=http://localhost:5180`, `DEFAULT_SITE_SLUG=<your site>` for the bare root |
 | Edge worker | http://localhost:8787 | `apps/edge/.dev.vars` (copy from `.dev.vars.example`), `VITE_EDGE_ORIGIN`, `VITE_ASSET_BASE_URL` |
 
 Both origins must match exactly or the preview refuses messages by design.
 
-## Production targets
+## What production needs
 
-| Piece | Where | Command |
-|-------|-------|---------|
-| Studio | Cloudflare Workers static assets (or Pages) | `pnpm --filter @siteos/studio build` → `apps/studio/dist` |
-| Renderer | Cloudflare Worker via `@astrojs/cloudflare` | `pnpm --filter @siteos/renderer build` → `apps/renderer/dist` then `wrangler deploy` |
-| Edge | Cloudflare Worker | `cd apps/edge && pnpm deploy` (after `wrangler secret put UPLOAD_SIGNING_SECRET`; optionally `CF_ZONE_ID` var + `wrangler secret put CF_API_TOKEN` for purge-on-publish) |
-| Assets | R2 bucket `siteos-assets` | enable R2 in the dashboard, then `wrangler r2 bucket create siteos-assets` |
-| Content (M2) | Supabase project | `supabase db push` migrations |
+Three Cloudflare Workers (Studio, renderer, edge), one R2 bucket, and one Supabase project. Everything below is
+done once; later releases are `pnpm deploy` in each app.
 
-Set `PUBLIC_STUDIO_ORIGIN` to the Studio's production origin and `VITE_PREVIEW_ORIGIN` to the renderer's.
+### Supabase (dashboard + CLI)
+
+1. **Schema.** `supabase link --project-ref <ref> && supabase db push` applies `supabase/migrations/`. Already done
+   if the Studio works locally against this project.
+2. **Users.** Authentication → Users → Add user (confirmed) for each editor. Keep *Allow new users to sign up*
+   off under Authentication → Sign In / Providers; the Studio has no sign-up screen on purpose.
+3. **Redirect URLs.** Authentication → URL Configuration: set *Site URL* to the Studio's production origin and add
+   it to *Redirect URLs*. Magic links return to `window.location.origin`, so without this they land on localhost.
+4. **Keys.** Project Settings → API Keys: the *publishable* key goes in every app's env. The *secret* key is only
+   for the RLS tests on a developer machine (`SUPABASE_SECRET_KEY` in `.env`); no deployed app uses it.
+
+### Cloudflare, one-time
+
+1. **Log in:** `pnpm exec wrangler login`. Note your `*.workers.dev` subdomain (Workers & Pages → Overview); the
+   three workers will be `siteos-studio`, `siteos-renderer` and `siteos-edge` under it unless you add domains.
+2. **R2.** In the dashboard open *R2 Object Storage* and enable it (Cloudflare asks for a payment method even for
+   the free tier; until then the API answers `code 10042`). Then:
+   ```bash
+   pnpm exec wrangler r2 bucket create siteos-assets
+   ```
+3. **Edge worker config.** In `apps/edge/wrangler.jsonc` set `vars`:
+   - `STUDIO_ORIGIN` — the Studio's production origin (CORS for uploads and purge)
+   - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`
+   - `PUBLIC_ASSET_BASE_URL` — leave empty to serve bytes from the worker at `/assets/…`, or set an R2 custom
+     domain once you have one
+   - `CF_ZONE_ID` — optional, the zone of the renderer's domain, for purge-on-publish
+
+   Secrets (never in files):
+   ```bash
+   cd apps/edge
+   openssl rand -hex 32 | pnpm exec wrangler secret put UPLOAD_SIGNING_SECRET
+   pnpm exec wrangler secret put CF_API_TOKEN     # optional: API token with Zone → Cache Purge → Purge
+   ```
+4. **Production env for the two front-end builds.** Create `.env.production` at the repo root (git-ignored; it
+   holds only public values). Vite reads it for `astro build` and `vite build`:
+   ```bash
+   # Studio
+   VITE_SUPABASE_URL=https://<ref>.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
+   VITE_PREVIEW_ORIGIN=https://siteos-renderer.<you>.workers.dev
+   VITE_EDGE_ORIGIN=https://siteos-edge.<you>.workers.dev
+   VITE_ASSET_BASE_URL=https://siteos-edge.<you>.workers.dev/assets
+   # Renderer
+   SUPABASE_URL=https://<ref>.supabase.co
+   SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
+   PUBLIC_STUDIO_ORIGIN=https://siteos-studio.<you>.workers.dev
+   PUBLIC_EDGE_ORIGIN=https://siteos-edge.<you>.workers.dev
+   DEFAULT_SITE_SLUG=<slug served at the bare origin>
+   PUBLIC_PLATFORM_DOMAIN=            # optional, see Domains
+   ```
+   These values are baked into the bundles at build time, so rebuild after changing them.
+
+### Deploy (in this order; each prints its URL)
+
+```bash
+pnpm --filter @siteos/edge deploy       # uploads, forms, assets, purge
+pnpm --filter @siteos/renderer deploy   # builds with .env.production, then wrangler deploy
+pnpm --filter @siteos/studio deploy     # static assets worker
+```
+
+The renderer's worker config is generated by the Astro adapter at build time (`dist/server/wrangler.json`) and
+needs only the static-assets binding; the Studio's `apps/studio/wrangler.jsonc` is an assets-only worker with
+SPA fallback. Sign in to the Studio, open a page and publish: the preview renders in the production renderer,
+uploads land in R2, and forms post to the edge worker.
+
+### Domains
+
+- **One business, one domain.** Workers & Pages → siteos-renderer → Settings → Domains & Routes → add
+  `www.example.com`; set `DEFAULT_SITE_SLUG` to that site and redeploy the renderer.
+- **Many sites under one platform domain.** Add a proxied wildcard DNS record `*.sites.example.com` and a route
+  `*.sites.example.com/*` on the renderer worker; set `PUBLIC_PLATFORM_DOMAIN=sites.example.com`. Each site is
+  then served at `<slug>.sites.example.com`; `/s/<slug>/` keeps working everywhere.
+- Put the Studio and the edge worker on subdomains of your own zone if you like; whatever you choose must be
+  mirrored exactly in `PUBLIC_STUDIO_ORIGIN`, `STUDIO_ORIGIN`, `VITE_PREVIEW_ORIGIN` and `VITE_EDGE_ORIGIN`.
+- Purge-on-publish only works when the renderer is served through a zone you own (`CF_ZONE_ID`); on
+  `workers.dev` the hook is a no-op and pages refresh through `s-maxage=60` instead.
 
 ## Free-tier assumptions
 
@@ -38,8 +107,3 @@ Set `PUBLIC_STUDIO_ORIGIN` to the Studio's production origin and `VITE_PREVIEW_O
 - Supabase free tier: 500 MB database, paused after inactivity. Published snapshots are small JSON rows.
 
 These limits are fine for a handful of small businesses. They are not a promise the system stays free at scale.
-
-## Remaining steps without credentials
-
-Cloudflare and Supabase accounts are not part of this repository. Everything runs locally; deployment needs
-`wrangler login`, a Supabase project URL/publishable key, and an R2 bucket, then the env values above.

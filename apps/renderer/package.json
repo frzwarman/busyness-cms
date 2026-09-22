@@ -10,7 +10,8 @@
     "build": "node scripts/sync-fonts.mjs && astro build",
     "preview": "astro preview",
     "typecheck": "astro check",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "pnpm build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.2",

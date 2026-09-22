@@ -8,7 +8,10 @@ export default defineConfig({
   // Class-based scoping is appended to `class` passed into child components, so a section's variant rules
   // (.v-split …) can target the <section> that SectionFrame renders. Attribute scoping (the default) cannot.
   scopedStyleStrategy: 'class',
-  adapter: cloudflare(),
+  // Images are resized in the browser and served from R2, so the worker needs no Images binding; the app
+  // keeps no sessions, so no KV namespace either. Deploy then needs nothing beyond the static assets.
+  adapter: cloudflare({ imageService: 'passthrough' }),
+  session: false,
   // CSRF: Astro rejects cross-origin POSTs by default; the preview render route relies on this.
   security: { checkOrigin: true },
   vite: {
