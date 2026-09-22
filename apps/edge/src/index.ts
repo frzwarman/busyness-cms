@@ -432,6 +432,14 @@ app.post('/cache/purge', async (c) => {
 });
 
 app.get('/health', (c) => c.json({ ok: true }));
+// The worker is an API, not a website: say so instead of a bare 404 at the root.
+app.get('/', (c) =>
+  c.json({
+    service: 'siteos-edge',
+    ok: true,
+    endpoints: ['/health', '/assets/*', '/uploads/*', '/forms/:formId', '/cache/purge'],
+  }),
+);
 
 /** Magic-byte check so a renamed .exe cannot be stored as an image. */
 export function sniffMatches(head: Uint8Array, mime: string): boolean {

@@ -63,8 +63,12 @@ BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS
 pnpm install
 cp .env.example .env            # fill in the Supabase URL + publishable key
 supabase login && supabase link --project-ref <ref> && supabase db push   # apply migrations
-pnpm dev                        # Studio → http://localhost:5180 · Renderer → http://localhost:4321
+pnpm dev                        # Studio → http://localhost:5180 · Renderer → http://localhost:4321 · Edge API → http://localhost:8787
 ```
+
+The renderer serves every published site at `/s/<site-slug>/` and the one named by `DEFAULT_SITE_SLUG` at the
+bare origin (the custom-domain model); without a default, the root answers 404 with that hint. The edge worker
+is an API for uploads, forms and assets, so its root only lists its endpoints.
 
 Create the first user in the Supabase dashboard (Authentication → Users → Add user, confirmed). Public
 self-registration should be disabled in Authentication → Sign In / Providers.
