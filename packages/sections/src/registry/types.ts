@@ -54,6 +54,7 @@ export type InspectorControl =
   | { control: 'link' }
   | { control: 'icon' }
   | { control: 'richtext' }
+  | { control: 'content-source' }
   | {
       control: 'list';
       /** Singular label for items, e.g. "Feature". */
@@ -123,6 +124,8 @@ export type SectionDefinition<S extends AnyObjectSchema = AnyObjectSchema> = {
   /** Business pack ids this section is recommended for (suggestions only). */
   recommendedFor: string[];
   keywords: string[];
+  /** When set, `props[itemsPath]` can be sourced from this content collection (see content/resolve.ts). */
+  collection?: { id: string; itemsPath: string };
 };
 
 export type ValidationFailure = {

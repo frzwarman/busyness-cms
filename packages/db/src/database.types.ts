@@ -201,6 +201,91 @@ export type Database = {
           },
         ];
       };
+      content_entries: {
+        Row: {
+          collection: string;
+          created_at: string;
+          data: Json;
+          id: string;
+          site_id: string;
+          sort_order: number;
+          tags: string[];
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          collection: string;
+          created_at?: string;
+          data: Json;
+          id?: string;
+          site_id: string;
+          sort_order?: number;
+          tags?: string[];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          collection?: string;
+          created_at?: string;
+          data?: Json;
+          id?: string;
+          site_id?: string;
+          sort_order?: number;
+          tags?: string[];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'content_entries_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      globals: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          revision: number;
+          section: Json;
+          site_id: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          revision?: number;
+          section: Json;
+          site_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          revision?: number;
+          section?: Json;
+          site_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'globals_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       organization_members: {
         Row: {
           created_at: string;
@@ -470,6 +555,14 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      content_entry_refs: {
+        Args: { p_entry: string };
+        Returns: {
+          page_id: string;
+          page_title: string;
+          section_id: string;
+        }[];
+      };
       create_asset: {
         Args: {
           p_filename: string;
@@ -512,6 +605,14 @@ export type Database = {
         Returns: Json;
       };
       get_published_site: { Args: { p_site_slug: string }; Returns: Json };
+      global_refs: {
+        Args: { p_global: string };
+        Returns: {
+          page_id: string;
+          page_title: string;
+          section_id: string;
+        }[];
+      };
       has_site_role: {
         Args: {
           p_min: Database['public']['Enums']['member_role'];
@@ -520,7 +621,7 @@ export type Database = {
         Returns: boolean;
       };
       publish_page: {
-        Args: { p_note?: string; p_page: string };
+        Args: { p_document?: Json; p_note?: string; p_page: string };
         Returns: {
           number: number;
           version_id: string;
@@ -533,6 +634,15 @@ export type Database = {
       restore_version: { Args: { p_version: string }; Returns: number };
       role_rank: {
         Args: { r: Database['public']['Enums']['member_role'] };
+        Returns: number;
+      };
+      save_global: {
+        Args: {
+          p_expected_revision: number;
+          p_id: string;
+          p_name?: string;
+          p_section: Json;
+        };
         Returns: number;
       };
       save_page_draft: {

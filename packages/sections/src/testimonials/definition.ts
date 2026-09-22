@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { imageField, introInspectorGroup, textareaField, textField } from '../shared.ts';
 import { testimonialsSchema } from './schema.ts';
@@ -7,10 +8,11 @@ export const testimonialsDefinition = defineSection({
   title: 'Testimonials',
   description: 'Customer quotes with names, roles, photos and star ratings.',
   category: 'social-proof',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: testimonialsSchema,
   defaults: {
     variant: 'grid',
+    source: manualSource,
     eyebrow: 'Reviews',
     heading: 'What customers say',
     description: '',
@@ -58,10 +60,16 @@ export const testimonialsDefinition = defineSection({
     },
   ],
   inspector: [
+    {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
     introInspectorGroup,
     {
       id: 'items',
       label: 'Testimonials',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         { path: 'showRatings', label: 'Show star ratings', control: 'toggle' },
         {
@@ -89,6 +97,8 @@ export const testimonialsDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'testimonials', itemsPath: 'items' },
+  migrations: [addSourceMigration(1)],
   recommendedFor: ['*'],
   keywords: ['reviews', 'quotes', 'social proof', 'ratings'],
 });

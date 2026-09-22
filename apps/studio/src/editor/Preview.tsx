@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { PREVIEW_URL, usePreviewBridge } from '@/lib/preview-bridge';
 import { useDebouncedEffect } from '@/lib/use-debounced-effect';
 import { cn } from '@/lib/utils';
+import { useResolvedDocument } from './content/content-queries';
 import { useEditor } from './EditorProvider';
 
 const widths = { desktop: undefined, tablet: 820, mobile: 390 } as const;
 
 export function Preview() {
   const { state, theme, pages, device, requestFocus } = useEditor();
+  const { resolved } = useResolvedDocument();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,17 +25,12 @@ export function Preview() {
 
   // Latest payload lives in a ref so a (re)loaded iframe can be rendered immediately on 'ready'.
   const payloadRef = useRef({
-    page: state.document,
+    page: resolved,
     theme,
     pages,
     selectedSectionId: state.selectedSectionId,
   });
-  payloadRef.current = {
-    page: state.document,
-    theme,
-    pages,
-    selectedSectionId: state.selectedSectionId,
-  };
+  payloadRef.current = { page: resolved, theme, pages, selectedSectionId: state.selectedSectionId };
 
   const sendRef = useRef<(msg: StudioToPreviewMessage) => void>(() => {});
   const onMessage = useCallback(
@@ -62,7 +59,7 @@ export function Preview() {
       if (ready)
         send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:render', payload: payloadRef.current });
     },
-    [state.document, theme, pages, ready],
+    [resolved, theme, pages, ready],
     120,
   );
   // …but selection changes are instant and don't re-render.

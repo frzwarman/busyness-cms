@@ -15,18 +15,22 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { createGlobal } from '@siteos/db';
 import type { SectionInstance } from '@siteos/schemas';
 import { registry } from '@siteos/sections';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDown,
   ArrowUp,
   Copy,
   Eye,
   EyeOff,
+  Globe,
   GripVertical,
   MoreHorizontal,
   Plus,
   Trash2,
+  Unlink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,7 +40,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+import { globalsQuery } from './content/content-queries';
 import { useEditor } from './EditorProvider';
 
 export function Navigator() {
@@ -119,8 +125,26 @@ function NavigatorItem({
   onSelect: () => void;
   onFocusGroup: (path: string) => void;
 }) {
-  const { dispatch } = useEditor();
-  const def = registry.get(section.type);
+  const { dispatch, siteId } = useEditor();
+  const qc = useQueryClient();
+  const { data: globals } = useQuery(globalsQuery(siteId));
+  const global = section.globalId ? globals?.find((g) => g.id === section.globalId) : undefined;
+  const def = registry.get(global?.section.type ?? section.type);
+  const makeGlobal = async () => {
+    const name = window.prompt('Name this global section', def?.title ?? 'Global section');
+    if (!name) return;
+    const g = await createGlobal(supabase, siteId, name.trim(), {
+      type: section.type,
+      schemaVersion: section.schemaVersion,
+      props: section.props,
+    });
+    await qc.invalidateQueries({ queryKey: ['globals', siteId] });
+    dispatch({ type: 'linkGlobal', sectionId: section.id, globalId: g.id });
+  };
+  const detach = () => {
+    if (!global) return;
+    dispatch({ type: 'detachGlobal', sectionId: section.id, content: global.section });
+  };
   const {
     attributes,
     listeners,
@@ -131,8 +155,9 @@ function NavigatorItem({
     isDragging,
   } = useSortable({ id: section.id });
   const title = def?.title ?? section.type;
-  const subtitle =
-    typeof section.props.heading === 'string'
+  const subtitle = global
+    ? `Global · ${global.name}`
+    : typeof section.props.heading === 'string'
       ? section.props.heading
       : def?.variants.find((v) => v.value === section.props.variant)?.label;
 
@@ -169,6 +194,9 @@ function NavigatorItem({
         >
           <span className="flex items-center gap-1.5 font-medium">
             {title}
+            {section.globalId && (
+              <Globe className="size-3 text-muted-foreground" aria-label="Global section" />
+            )}
             {section.hidden && (
               <EyeOff className="size-3 text-muted-foreground" aria-label="Hidden" />
             )}
@@ -216,6 +244,16 @@ function NavigatorItem({
             >
               {section.hidden ? <Eye /> : <EyeOff />} {section.hidden ? 'Show' : 'Hide'}
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {section.globalId ? (
+              <DropdownMenuItem onSelect={detach}>
+                <Unlink /> Detach from global
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onSelect={() => void makeGlobal()}>
+                <Globe /> Make global
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"

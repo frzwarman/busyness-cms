@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AssetLibrary } from './assets/AssetLibrary';
 import { BrandPanel } from './BrandPanel';
+import { ContentPanel } from './content/ContentPanel';
 import { Inspector } from './Inspector';
 import { Navigator } from './Navigator';
 import { PagesPanel } from './PagesPanel';
@@ -13,10 +14,11 @@ import { TopBar } from './TopBar';
 function LeftPanel() {
   return (
     <Tabs defaultValue="sections" className="flex h-full flex-col gap-0">
-      <TabsList className="m-2 grid grid-cols-4">
+      <TabsList className="m-2 grid grid-cols-5 text-xs">
         <TabsTrigger value="pages">Pages</TabsTrigger>
         <TabsTrigger value="sections">Sections</TabsTrigger>
         <TabsTrigger value="assets">Assets</TabsTrigger>
+        <TabsTrigger value="content">Content</TabsTrigger>
         <TabsTrigger value="brand">Brand</TabsTrigger>
       </TabsList>
       <TabsContent value="pages" className="min-h-0 flex-1 overflow-auto">
@@ -27,6 +29,9 @@ function LeftPanel() {
       </TabsContent>
       <TabsContent value="assets" className="min-h-0 flex-1 overflow-hidden">
         <AssetLibrary compact />
+      </TabsContent>
+      <TabsContent value="content" className="min-h-0 flex-1 overflow-auto">
+        <ContentPanel />
       </TabsContent>
       <TabsContent value="brand" className="min-h-0 flex-1 overflow-auto">
         <BrandPanel />
@@ -44,7 +49,7 @@ export function EditorShell() {
       <TopBar onOpenLeft={() => setLeftOpen(true)} onOpenRight={() => setRightOpen(true)} />
       <div className="flex min-h-0 flex-1">
         <aside
-          className="hidden w-72 shrink-0 border-r lg:block"
+          className="hidden w-80 shrink-0 border-r lg:block"
           aria-label="Pages, sections and brand"
         >
           <LeftPanel />

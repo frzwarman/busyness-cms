@@ -1,13 +1,16 @@
 import { getPath } from '@siteos/editor-core';
 import type { Button as ButtonValue, ImageRef, Link, SectionInstance } from '@siteos/schemas';
-import type { IconName, RichTextDoc } from '@siteos/sections';
 import {
+  type ContentSource,
+  type IconName,
   type InspectorField,
   type InspectorGroup,
+  manualSource,
+  type RichTextDoc,
   registry,
   type SectionDefinition,
 } from '@siteos/sections';
-import { Copy, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Copy, Eye, EyeOff, Globe, Trash2, Unlink } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +25,9 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { useGlobalEditor } from './content/content-queries';
 import { ButtonControl } from './controls/ButtonControl';
+import { ContentSourceControl } from './controls/ContentSourceControl';
 import { fieldId } from './controls/field-id';
 import { IconControl } from './controls/IconControl';
 import { ImageControl } from './controls/ImageControl';
@@ -47,20 +52,21 @@ const spacingOptions = [
 ];
 
 export function Inspector() {
-  const section = useSelectedSection();
-  const { state, dispatch, focusRequest } = useEditor();
+  const selected = useSelectedSection();
+  const { state, dispatch, focusRequest, canEdit } = useEditor();
+  const g = useGlobalEditor(selected?.globalId);
 
   // Click-to-select from the preview / navigator: focus the matching field.
   useEffect(() => {
-    if (!focusRequest || focusRequest.sectionId !== section?.id) return;
+    if (!focusRequest || focusRequest.sectionId !== selected?.id) return;
     const path = focusRequest.fieldPath;
-    const el = path ? document.getElementById(fieldId(section.id, path)) : null;
-    const target = el ?? document.getElementById(`inspector-${section.id}`);
+    const el = path ? document.getElementById(fieldId(selected.id, path)) : null;
+    const target = el ?? document.getElementById(`inspector-${selected.id}`);
     target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     if (el && 'focus' in el) (el as HTMLElement).focus({ preventScroll: true });
-  }, [focusRequest, section?.id]);
+  }, [focusRequest, selected?.id]);
 
-  if (!section) {
+  if (!selected) {
     return (
       <div className="flex h-full flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
         <p>
@@ -71,6 +77,19 @@ export function Inspector() {
       </div>
     );
   }
+
+  // A global-linked section edits the global's content (shared), not the page's placeholder.
+  const isGlobal = Boolean(selected.globalId);
+  const missingGlobal = isGlobal && g.global === null;
+  const section: SectionInstance =
+    isGlobal && g.global
+      ? {
+          ...selected,
+          type: g.global.section.type,
+          schemaVersion: g.global.section.schemaVersion,
+          props: g.props,
+        }
+      : selected;
   const def = registry.get(section.type);
   const validation = registry.validate(section);
   if (!def) {
@@ -92,7 +111,13 @@ export function Inspector() {
     );
   }
   const update = (path: string, value: unknown) =>
-    dispatch({ type: 'updateProps', sectionId: section.id, path, value });
+    isGlobal
+      ? g.update(path, value)
+      : dispatch({ type: 'updateProps', sectionId: section.id, path, value });
+  const setVariant = (variant: string) =>
+    isGlobal
+      ? g.setVariant(variant)
+      : dispatch({ type: 'setVariant', sectionId: section.id, variant });
 
   return (
     <div id={`inspector-${section.id}`} className="flex h-full flex-col">
@@ -133,6 +158,51 @@ export function Inspector() {
         </div>
       </div>
       <div className="flex-1 overflow-auto">
+        {isGlobal && (
+          <div className="m-3 rounded-md border bg-muted/40 p-2.5 text-xs" role="status">
+            <p className="flex items-center gap-1.5 font-medium">
+              <Globe className="size-3.5" /> Global section{g.global ? ` · ${g.global.name}` : ''}
+            </p>
+            {missingGlobal ? (
+              <p className="mt-1 text-destructive">
+                This global section was deleted. Detach to keep a local copy, or remove the section.
+              </p>
+            ) : (
+              <p className="mt-1 text-muted-foreground">
+                Changes here apply to every page using it on their next publish.{' '}
+                {g.status === 'saving'
+                  ? 'Saving…'
+                  : g.status === 'saved'
+                    ? 'Saved.'
+                    : g.status === 'conflict'
+                      ? 'Changed elsewhere — reload to continue.'
+                      : g.status === 'error'
+                        ? 'Failed to save.'
+                        : ''}
+              </p>
+            )}
+            {canEdit && (
+              <Button
+                size="xs"
+                variant="outline"
+                className="mt-2"
+                onClick={() =>
+                  dispatch({
+                    type: 'detachGlobal',
+                    sectionId: selected.id,
+                    content: {
+                      type: section.type,
+                      schemaVersion: section.schemaVersion,
+                      props: section.props,
+                    },
+                  })
+                }
+              >
+                <Unlink /> Detach from global
+              </Button>
+            )}
+          </div>
+        )}
         {!validation.ok && (
           <div
             className="m-3 rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
@@ -153,9 +223,7 @@ export function Inspector() {
                 <li key={v.value}>
                   <button
                     type="button"
-                    onClick={() =>
-                      dispatch({ type: 'setVariant', sectionId: section.id, variant: v.value })
-                    }
+                    onClick={() => setVariant(v.value)}
                     aria-pressed={section.props.variant === v.value}
                     className={cn(
                       'w-full rounded-md border p-1.5 text-left hover:bg-muted',
@@ -194,10 +262,10 @@ export function Inspector() {
           )}
         </Group>
         {def.inspector
-          .filter((g) => isVisible(g, section))
-          .map((g) => (
-            <Group key={g.id} label={g.label}>
-              {g.fields.map((f) => (
+          .filter((grp) => isVisible(grp, section))
+          .map((grp) => (
+            <Group key={grp.id} label={grp.label}>
+              {grp.fields.map((f) => (
                 <FieldControl
                   key={f.path}
                   field={f}
@@ -253,6 +321,7 @@ function Field({
 function FieldControl({
   field,
   section,
+  def,
   onChange,
 }: {
   field: InspectorField;
@@ -268,7 +337,8 @@ function FieldControl({
     field.control === 'link' ||
     field.control === 'list' ||
     field.control === 'richtext' ||
-    field.control === 'icon';
+    field.control === 'icon' ||
+    field.control === 'content-source';
   if (field.control === 'toggle') {
     return (
       <div className="flex items-center justify-between">
@@ -281,10 +351,22 @@ function FieldControl({
   }
   return (
     <Field label={field.label} htmlFor={composite ? undefined : id} description={field.description}>
-      {renderControl(field, value, (v) => onChange(field.path, v), id)}
+      {renderControl(field, value, (v) => onChange(field.path, v), id, {
+        collectionId: def.collection?.id,
+      })}
     </Field>
   );
 }
+
+/** Controls that carry their own labelled inputs; a <label for> on their container would mislabel them. */
+export const isCompositeControl = (control: InspectorField['control']) =>
+  control === 'image' ||
+  control === 'button' ||
+  control === 'link' ||
+  control === 'list' ||
+  control === 'richtext' ||
+  control === 'icon' ||
+  control === 'content-source';
 
 /** One control for one field value. Shared by top-level fields and list items (recursively). */
 export function renderControl(
@@ -292,8 +374,18 @@ export function renderControl(
   value: unknown,
   onChange: (v: unknown) => void,
   id: string,
+  ctx: { collectionId?: string } = {},
 ): React.ReactNode {
   switch (field.control) {
+    case 'content-source':
+      return ctx.collectionId ? (
+        <ContentSourceControl
+          id={id}
+          collectionId={ctx.collectionId}
+          value={(value as ContentSource | undefined) ?? manualSource}
+          onChange={(v) => onChange(v)}
+        />
+      ) : null;
     case 'text':
       return (
         <Input

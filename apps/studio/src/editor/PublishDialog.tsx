@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { useResolvedDocument } from './content/content-queries';
 import { useEditor } from './EditorProvider';
 import { publishStateQuery } from './publish-queries';
 
@@ -31,6 +32,7 @@ export function PublishDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const { state, saveStatus, saveNow } = useEditor();
+  const { resolved, ready } = useResolvedDocument();
   const pageId = state.document.id;
   const qc = useQueryClient();
   const { data: live } = useQuery(publishStateQuery(pageId));
@@ -39,18 +41,22 @@ export function PublishDialog({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
 
-  const { issues } = registry.normalizeDocument(state.document);
+  const { issues } = registry.normalizeDocument(resolved);
   const diff = live?.publishedDocument
-    ? describeChanges(live.publishedDocument, state.document, registry)
+    ? describeChanges(live.publishedDocument, resolved, registry)
     : null;
   const blocked =
-    issues.length > 0 || state.dirty || saveStatus === 'saving' || saveStatus === 'conflict';
+    !ready ||
+    issues.length > 0 ||
+    state.dirty ||
+    saveStatus === 'saving' ||
+    saveStatus === 'conflict';
 
   const publish = async () => {
     setBusy(true);
     setError(null);
     try {
-      const v = await publishPage(supabase, pageId, note.trim() || undefined);
+      const v = await publishPage(supabase, pageId, note.trim() || undefined, resolved);
       await qc.invalidateQueries({ queryKey: ['publish', pageId] });
       await qc.invalidateQueries({ queryKey: ['versions', pageId] });
       setDone(v.number);

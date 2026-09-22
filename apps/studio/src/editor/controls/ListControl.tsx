@@ -4,7 +4,9 @@ import { ChevronDown, ChevronRight, ChevronUp, Plus, Trash2 } from 'lucide-react
 import { type ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { isCompositeControl } from '../Inspector';
 
 type Item = Record<string, unknown> | string;
 
@@ -125,7 +127,16 @@ export function ListControl({
                 <div className={cn('grid gap-3 border-t bg-muted/30 p-2.5')}>
                   {fields.map((f) => (
                     <div key={f.path} className="grid gap-1.5">
-                      <span className="text-xs font-medium">{f.label}</span>
+                      <Label
+                        htmlFor={
+                          isCompositeControl(f.control)
+                            ? undefined
+                            : `${id}-${i}-${f.path.replace(/\./g, '-')}`
+                        }
+                        className="text-xs"
+                      >
+                        {f.label}
+                      </Label>
                       {renderField(
                         f,
                         getPath(it, f.path),

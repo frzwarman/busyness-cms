@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentSourceSchema } from '../content/source.ts';
 import { sectionIntroFields, sectionStyleFields } from '../shared.ts';
 
 export const statItemSchema = z.object({
@@ -8,6 +9,13 @@ export const statItemSchema = z.object({
 });
 export const statsSchema = z.object({
   variant: z.enum(['row', 'grid', 'cards']),
+  source: contentSourceSchema.default({
+    mode: 'manual',
+    selection: 'all',
+    tag: '',
+    ids: [],
+    limit: 12,
+  }),
   ...sectionIntroFields,
   items: z.array(statItemSchema).min(1).max(8),
   ...sectionStyleFields,

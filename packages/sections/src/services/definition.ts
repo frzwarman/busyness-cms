@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { imageField, introInspectorGroup, linkField, textareaField, textField } from '../shared.ts';
 import { servicesSchema } from './schema.ts';
@@ -7,10 +8,11 @@ export const servicesDefinition = defineSection({
   title: 'Services',
   description: 'What you offer, with optional prices, photos and links to detail pages.',
   category: 'features',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: servicesSchema,
   defaults: {
     variant: 'cards',
+    source: manualSource,
     eyebrow: 'Services',
     heading: 'What we do',
     description: '',
@@ -52,10 +54,16 @@ export const servicesDefinition = defineSection({
     { value: 'image-cards', label: 'Image cards', thumbnail: ['M | M | M', 'H | H | H'] },
   ],
   inspector: [
+    {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
     introInspectorGroup,
     {
       id: 'items',
       label: 'Services',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         {
           path: 'items',
@@ -82,6 +90,8 @@ export const servicesDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'services', itemsPath: 'items' },
+  migrations: [addSourceMigration(1)],
   recommendedFor: ['*'],
   keywords: ['offer', 'packages', 'treatments', 'menu of services'],
 });

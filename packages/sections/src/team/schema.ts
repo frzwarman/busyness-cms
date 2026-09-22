@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentSourceSchema } from '../content/source.ts';
 import { imageRefSchema, linkSchema, sectionIntroFields, sectionStyleFields } from '../shared.ts';
 
 export const memberSchema = z.object({
@@ -10,6 +11,13 @@ export const memberSchema = z.object({
 });
 export const teamSchema = z.object({
   variant: z.enum(['grid', 'list']),
+  source: contentSourceSchema.default({
+    mode: 'manual',
+    selection: 'all',
+    tag: '',
+    ids: [],
+    limit: 12,
+  }),
   ...sectionIntroFields,
   members: z.array(memberSchema).min(1).max(16),
   ...sectionStyleFields,

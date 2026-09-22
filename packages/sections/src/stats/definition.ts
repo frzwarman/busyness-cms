@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { introInspectorGroup, textField } from '../shared.ts';
 import { statsSchema } from './schema.ts';
@@ -8,10 +9,11 @@ export const statsDefinition = defineSection({
   description:
     'A handful of numbers that prove the point: years in business, customers served, ratings.',
   category: 'content',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: statsSchema,
   defaults: {
     variant: 'row',
+    source: manualSource,
     eyebrow: '',
     heading: '',
     description: '',
@@ -30,10 +32,16 @@ export const statsDefinition = defineSection({
     { value: 'cards', label: 'Cards', thumbnail: ['C | C | C'] },
   ],
   inspector: [
+    {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
     introInspectorGroup,
     {
       id: 'items',
       label: 'Numbers',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         {
           path: 'items',
@@ -52,5 +60,7 @@ export const statsDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'stats', itemsPath: 'items' },
+  migrations: [addSourceMigration(1)],
   keywords: ['numbers', 'metrics', 'facts', 'kpi'],
 });

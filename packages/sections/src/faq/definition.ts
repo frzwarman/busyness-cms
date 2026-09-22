@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { richTextFromPlain } from '../rich-text/schema.ts';
 import { introInspectorGroup, textField } from '../shared.ts';
@@ -9,10 +10,11 @@ export const faqDefinition = defineSection({
   description:
     'Questions and answers. The accordion works without JavaScript and is keyboard accessible.',
   category: 'information',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: faqSchema,
   defaults: {
     variant: 'accordion',
+    source: manualSource,
     eyebrow: 'FAQ',
     heading: 'Questions we hear a lot',
     description: '',
@@ -56,10 +58,16 @@ export const faqDefinition = defineSection({
     },
   ],
   inspector: [
+    {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
     introInspectorGroup,
     {
       id: 'items',
       label: 'Questions',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         {
           path: 'items',
@@ -80,6 +88,8 @@ export const faqDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'faqs', itemsPath: 'items' },
+  migrations: [addSourceMigration(1)],
   recommendedFor: ['*'],
   keywords: ['questions', 'answers', 'help', 'support'],
 });

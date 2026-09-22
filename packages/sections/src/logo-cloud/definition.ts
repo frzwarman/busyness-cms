@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { imageField, linkField, textField } from '../shared.ts';
 import { logoCloudSchema } from './schema.ts';
@@ -7,10 +8,11 @@ export const logoCloudDefinition = defineSection({
   title: 'Logo cloud',
   description: 'Client, partner or press logos. Names render as text until a logo image is added.',
   category: 'social-proof',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: logoCloudSchema,
   defaults: {
     variant: 'row',
+    source: manualSource,
     heading: 'Trusted by local businesses',
     logos: [
       { name: 'Bogor Botanic Café', image: null, link: null },
@@ -28,6 +30,11 @@ export const logoCloudDefinition = defineSection({
   ],
   inspector: [
     {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
+    {
       id: 'heading',
       label: 'Heading',
       fields: [
@@ -38,6 +45,7 @@ export const logoCloudDefinition = defineSection({
     {
       id: 'logos',
       label: 'Logos',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         {
           path: 'logos',
@@ -56,5 +64,7 @@ export const logoCloudDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'logos', itemsPath: 'logos' },
+  migrations: [addSourceMigration(1)],
   keywords: ['clients', 'partners', 'press', 'trusted by'],
 });

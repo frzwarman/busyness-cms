@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentSourceSchema } from '../content/source.ts';
 import { imageRefSchema, sectionIntroFields, sectionStyleFields } from '../shared.ts';
 
 export const testimonialItemSchema = z.object({
@@ -10,6 +11,13 @@ export const testimonialItemSchema = z.object({
 });
 export const testimonialsSchema = z.object({
   variant: z.enum(['grid', 'columns', 'single']),
+  source: contentSourceSchema.default({
+    mode: 'manual',
+    selection: 'all',
+    tag: '',
+    ids: [],
+    limit: 12,
+  }),
   ...sectionIntroFields,
   items: z.array(testimonialItemSchema).min(1).max(9),
   showRatings: z.boolean().default(true),

@@ -3,8 +3,15 @@ import type { AnyObjectSchema, SectionDefinition } from './types.ts';
 
 type DefineInput<S extends AnyObjectSchema> = Omit<
   SectionDefinition<S>,
-  'migrations' | 'capabilities' | 'performance' | 'recommendedFor' | 'keywords' | 'defaults'
+  | 'migrations'
+  | 'capabilities'
+  | 'performance'
+  | 'recommendedFor'
+  | 'keywords'
+  | 'defaults'
+  | 'collection'
 > & {
+  collection?: SectionDefinition<S>['collection'];
   defaults: z.input<S>;
   migrations?: SectionDefinition<S>['migrations'];
   capabilities?: Partial<SectionDefinition<S>['capabilities']>;

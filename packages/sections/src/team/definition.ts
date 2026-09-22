@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { imageField, introInspectorGroup, linkField, textareaField, textField } from '../shared.ts';
 import { teamSchema } from './schema.ts';
@@ -7,10 +8,11 @@ export const teamDefinition = defineSection({
   title: 'Team',
   description: 'The people behind the business, with roles, short bios and photos.',
   category: 'business',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: teamSchema,
   defaults: {
     variant: 'grid',
+    source: manualSource,
     eyebrow: 'Team',
     heading: 'The people behind the counter',
     description: '',
@@ -51,10 +53,16 @@ export const teamDefinition = defineSection({
     },
   ],
   inspector: [
+    {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
     introInspectorGroup,
     {
       id: 'members',
       label: 'Members',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         {
           path: 'members',
@@ -75,6 +83,8 @@ export const teamDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'team', itemsPath: 'members' },
+  migrations: [addSourceMigration(1)],
   recommendedFor: ['agency', 'law-firm', 'clinic', 'barbershop', 'gym', 'real-estate'],
   keywords: ['people', 'staff', 'attorneys', 'doctors', 'about'],
 });

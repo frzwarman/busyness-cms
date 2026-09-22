@@ -246,7 +246,10 @@ export function AssetLibrary({
         </div>
 
         {jobs.length > 0 && (
-          <ul className="grid gap-1 border-b bg-muted/30 p-2 text-xs" aria-live="polite">
+          <ul
+            className="grid max-h-32 gap-1 overflow-auto border-b bg-muted/30 p-2 text-xs"
+            aria-live="polite"
+          >
             {jobs.map((j) => (
               <li key={j.id} className="flex items-center gap-2">
                 {j.stage === 'error' ? (
@@ -487,7 +490,8 @@ function AssetDetails({
   return (
     <aside
       className={cn(
-        'flex min-h-0 flex-col overflow-auto border-t bg-muted/20 p-3 text-sm',
+        'flex min-h-0 shrink-0 flex-col overflow-auto border-t bg-muted/20 p-3 text-sm',
+        compact && 'max-h-[55%]',
         !compact && 'md:w-80 md:border-t-0 md:border-l',
       )}
       aria-label="Asset details"

@@ -4,7 +4,8 @@ import {
   type SectionDefinition,
   sectionCategories,
 } from '@siteos/sections';
-import { ArrowLeft, Search } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Globe, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { globalsQuery } from './content/content-queries';
 import { useEditor } from './EditorProvider';
 import { Thumbnail } from './Thumbnail';
 
@@ -30,9 +32,10 @@ function readRecent(): string[] {
 }
 
 export function SectionPicker() {
-  const { pickerOpen, setPickerOpen, dispatch, state } = useEditor();
+  const { pickerOpen, setPickerOpen, dispatch, state, siteId } = useEditor();
+  const { data: globals } = useQuery(globalsQuery(siteId));
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<SectionCategory | 'all' | 'recent'>('all');
+  const [category, setCategory] = useState<SectionCategory | 'all' | 'recent' | 'globals'>('all');
   const [picked, setPicked] = useState<SectionDefinition | null>(null);
   const recent = useMemo(() => readRecent(), []);
 
@@ -46,6 +49,7 @@ export function SectionPicker() {
   const results = useMemo(() => {
     let list = registry.search(query);
     if (category === 'recent') list = list.filter((d) => recent.includes(d.type));
+    else if (category === 'globals') list = [];
     else if (category !== 'all') list = list.filter((d) => d.category === category);
     return list;
   }, [query, category, recent]);
@@ -116,6 +120,7 @@ export function SectionPicker() {
               {[
                 { id: 'all' as const, label: 'All sections' },
                 ...(recent.length ? [{ id: 'recent' as const, label: 'Recently used' }] : []),
+                ...(globals?.length ? [{ id: 'globals' as const, label: 'Global sections' }] : []),
                 ...categoriesInUse,
               ].map((c) => (
                 <button
@@ -145,7 +150,49 @@ export function SectionPicker() {
                 />
               </div>
               <div className="flex-1 overflow-auto p-4">
-                {results.length === 0 ? (
+                {category === 'globals' ? (
+                  <ul
+                    className="grid grid-cols-2 gap-3 md:grid-cols-3"
+                    aria-label="Global sections"
+                  >
+                    {(globals ?? []).map((g) => {
+                      const def = registry.get(g.section.type);
+                      return (
+                        <li key={g.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const selectedIndex = state.document.sections.findIndex(
+                                (s) => s.id === state.selectedSectionId,
+                              );
+                              dispatch({
+                                type: 'insertGlobal',
+                                globalId: g.id,
+                                content: g.section,
+                                index: selectedIndex === -1 ? undefined : selectedIndex + 1,
+                              });
+                              setPickerOpen(false);
+                            }}
+                            className="group w-full rounded-lg border p-2 text-left transition hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
+                          >
+                            <Thumbnail
+                              wire={
+                                def?.variants.find((v) => v.value === g.section.props.variant)
+                                  ?.thumbnail ?? ['H']
+                              }
+                            />
+                            <div className="mt-2 flex items-center gap-1.5 px-1 text-sm font-medium">
+                              <Globe className="size-3.5 text-muted-foreground" /> {g.name}
+                            </div>
+                            <div className="px-1 text-xs text-muted-foreground">
+                              {def?.title ?? g.section.type} · shared across pages
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : results.length === 0 ? (
                   <p className="p-6 text-center text-sm text-muted-foreground">
                     No sections match “{query}”. More section types arrive with the section library
                     milestone.

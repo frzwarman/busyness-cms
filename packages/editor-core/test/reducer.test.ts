@@ -143,3 +143,41 @@ describe('editor reducer', () => {
     expect(selectors.canUndo(s)).toBe(true);
   });
 });
+
+describe('global sections', () => {
+  const content = {
+    type: 'footer',
+    schemaVersion: 1,
+    props: { variant: 'simple', brandName: 'X' },
+  };
+  it('links, inserts and detaches without losing page identity', () => {
+    let s = reduce(init(), {
+      type: 'linkGlobal',
+      sectionId: 'sec_demo00000003',
+      globalId: '55555555-5555-4555-8555-555555555555',
+    });
+    expect(s.document.sections[2]?.globalId).toBe('55555555-5555-4555-8555-555555555555');
+    s = reduce(s, {
+      type: 'insertGlobal',
+      globalId: '66666666-6666-4666-8666-666666666666',
+      content,
+      index: 0,
+    });
+    expect(s.document.sections[0]).toMatchObject({
+      type: 'footer',
+      globalId: '66666666-6666-4666-8666-666666666666',
+    });
+    const id = s.document.sections[0]?.id as string;
+    s = reduce(s, {
+      type: 'detachGlobal',
+      sectionId: id,
+      content: { ...content, props: { ...content.props, brandName: 'Local' } },
+    });
+    expect(s.document.sections[0]?.globalId).toBeUndefined();
+    expect(s.document.sections[0]?.props.brandName).toBe('Local');
+    expect(s.document.sections[0]?.id).toBe(id);
+    expect(reduce(s, { type: 'undo' }).document.sections[0]?.globalId).toBe(
+      '66666666-6666-4666-8666-666666666666',
+    );
+  });
+});

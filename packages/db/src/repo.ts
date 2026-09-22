@@ -181,9 +181,15 @@ export async function publishPage(
   db: Db,
   pageId: string,
   note?: string,
+  /** Draft with content/globals inlined (see @siteos/sections resolveDocument); stored as the version. */
+  resolvedDocument?: PageDocument,
 ): Promise<{ versionId: string; number: number }> {
   const rows = unwrap(
-    await db.rpc('publish_page', { p_page: pageId, p_note: note ?? undefined }),
+    await db.rpc('publish_page', {
+      p_page: pageId,
+      p_note: note ?? undefined,
+      p_document: resolvedDocument ? asJson(resolvedDocument) : undefined,
+    }),
     'Publishing',
   );
   const row = rows[0];
@@ -399,4 +405,164 @@ export async function deleteAsset(db: Db, assetId: string, force = false): Promi
     throw new Error(`Deleting asset: ${error.message}`);
   }
   return data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// Content library + globals (Milestone 6)
+// ---------------------------------------------------------------------------
+export type ContentEntryRow = {
+  id: string;
+  collection: string;
+  data: Record<string, unknown>;
+  tags: string[];
+  sortOrder: number;
+  updatedAt: string;
+};
+export type GlobalRow = {
+  id: string;
+  name: string;
+  section: { type: string; schemaVersion: number; props: Record<string, unknown> };
+  revision: number;
+  updatedAt: string;
+};
+export type Ref = { pageId: string; pageTitle: string; sectionId: string };
+
+export async function listEntries(db: Db, siteId: string): Promise<ContentEntryRow[]> {
+  const rows = unwrap(
+    await db
+      .from('content_entries')
+      .select('id, collection, data, tags, sort_order, updated_at')
+      .eq('site_id', siteId)
+      .order('sort_order')
+      .order('created_at'),
+    'Loading content',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    collection: r.collection,
+    data: r.data as Record<string, unknown>,
+    tags: r.tags,
+    sortOrder: r.sort_order,
+    updatedAt: r.updated_at,
+  }));
+}
+
+export async function createEntry(
+  db: Db,
+  siteId: string,
+  collection: string,
+  data: Record<string, unknown>,
+  tags: string[] = [],
+): Promise<string> {
+  const res = await db
+    .from('content_entries')
+    .insert({ site_id: siteId, collection, data: asJson(data), tags })
+    .select('id')
+    .single();
+  if (res.error) throw new Error(`Creating ${collection} entry: ${res.error.message}`);
+  return res.data.id;
+}
+
+export async function updateEntry(
+  db: Db,
+  id: string,
+  patch: { data?: Record<string, unknown>; tags?: string[]; sortOrder?: number },
+): Promise<void> {
+  const { error } = await db
+    .from('content_entries')
+    .update({
+      ...(patch.data ? { data: asJson(patch.data) } : {}),
+      ...(patch.tags ? { tags: patch.tags } : {}),
+      ...(patch.sortOrder !== undefined ? { sort_order: patch.sortOrder } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+  if (error) throw new Error(`Saving entry: ${error.message}`);
+}
+
+export async function deleteEntry(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('content_entries').delete().eq('id', id);
+  if (error) throw new Error(`Deleting entry: ${error.message}`);
+}
+
+export async function entryRefs(db: Db, id: string): Promise<Ref[]> {
+  const rows = unwrap(
+    await db.rpc('content_entry_refs', { p_entry: id }),
+    'Checking where this entry is used',
+  );
+  return rows.map((r) => ({ pageId: r.page_id, pageTitle: r.page_title, sectionId: r.section_id }));
+}
+
+export async function listGlobals(db: Db, siteId: string): Promise<GlobalRow[]> {
+  const rows = unwrap(
+    await db
+      .from('globals')
+      .select('id, name, section, revision, updated_at')
+      .eq('site_id', siteId)
+      .order('created_at'),
+    'Loading global sections',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    section: r.section as GlobalRow['section'],
+    revision: r.revision,
+    updatedAt: r.updated_at,
+  }));
+}
+
+export async function createGlobal(
+  db: Db,
+  siteId: string,
+  name: string,
+  section: GlobalRow['section'],
+): Promise<GlobalRow> {
+  const res = await db
+    .from('globals')
+    .insert({ site_id: siteId, name, section: asJson(section) })
+    .select('id, name, section, revision, updated_at')
+    .single();
+  if (res.error) throw new Error(`Creating global section: ${res.error.message}`);
+  return {
+    id: res.data.id,
+    name: res.data.name,
+    section: res.data.section as GlobalRow['section'],
+    revision: res.data.revision,
+    updatedAt: res.data.updated_at,
+  };
+}
+
+/** Returns the new revision; throws DraftConflictError when someone else saved first. */
+export async function saveGlobal(
+  db: Db,
+  id: string,
+  expectedRevision: number,
+  section: GlobalRow['section'],
+  name?: string,
+): Promise<number> {
+  const { data, error } = await db.rpc('save_global', {
+    p_id: id,
+    p_expected_revision: expectedRevision,
+    p_section: asJson(section),
+    p_name: name ?? undefined,
+  });
+  if (error) {
+    if (error.message.includes('revision_conflict'))
+      throw new DraftConflictError(Number(error.details) || expectedRevision + 1);
+    throw new Error(`Saving global section: ${error.message}`);
+  }
+  return data;
+}
+
+export async function deleteGlobal(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('globals').delete().eq('id', id);
+  if (error) throw new Error(`Deleting global section: ${error.message}`);
+}
+
+export async function globalRefs(db: Db, id: string): Promise<Ref[]> {
+  const rows = unwrap(
+    await db.rpc('global_refs', { p_global: id }),
+    'Checking where this global is used',
+  );
+  return rows.map((r) => ({ pageId: r.page_id, pageTitle: r.page_title, sectionId: r.section_id }));
 }

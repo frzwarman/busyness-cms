@@ -25,6 +25,19 @@ export type EditorAction =
   | { type: 'toggleHidden'; sectionId: string }
   | { type: 'updateProps'; sectionId: string; path: string; value: unknown; at?: number }
   | { type: 'setVariant'; sectionId: string; variant: string }
+  /** Turn a section into a placeholder for a global (globalId set) or detach it into a local copy (globalId cleared, content given). */
+  | { type: 'linkGlobal'; sectionId: string; globalId: string }
+  | {
+      type: 'detachGlobal';
+      sectionId: string;
+      content: { type: string; schemaVersion: number; props: Record<string, unknown> };
+    }
+  | {
+      type: 'insertGlobal';
+      globalId: string;
+      content: { type: string; schemaVersion: number; props: Record<string, unknown> };
+      index?: number;
+    }
   | { type: 'renamePage'; title: string }
   | { type: 'undo' }
   | { type: 'redo' }
@@ -150,6 +163,44 @@ export function createEditorReducer(registry: SectionRegistry) {
             props: { ...s.props, variant: action.variant },
           })),
         );
+
+      case 'linkGlobal':
+        return commit(
+          state,
+          replaceSection(state.document, action.sectionId, (s) => ({
+            ...s,
+            globalId: action.globalId,
+          })),
+        );
+
+      case 'detachGlobal':
+        return commit(
+          state,
+          replaceSection(state.document, action.sectionId, (s) => {
+            const { globalId: _drop, ...rest } = s;
+            return {
+              ...rest,
+              type: action.content.type,
+              schemaVersion: action.content.schemaVersion,
+              props: structuredClone(action.content.props),
+            };
+          }),
+        );
+
+      case 'insertGlobal': {
+        const section: SectionInstance = {
+          id: createId('sec'),
+          type: action.content.type,
+          schemaVersion: action.content.schemaVersion,
+          hidden: false,
+          globalId: action.globalId,
+          props: structuredClone(action.content.props),
+        };
+        const sections = [...state.document.sections];
+        const index = Math.min(Math.max(action.index ?? sections.length, 0), sections.length);
+        sections.splice(index, 0, section);
+        return { ...commit(state, { ...state.document, sections }), selectedSectionId: section.id };
+      }
 
       case 'renamePage':
         return commit(state, { ...state.document, title: action.title });

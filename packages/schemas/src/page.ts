@@ -6,6 +6,8 @@ export const sectionInstanceSchema = z.object({
   type: z.string().min(1).max(64),
   schemaVersion: z.number().int().positive(),
   hidden: z.boolean().default(false),
+  /** When set, type/props are a placeholder: the page shows the global section with this id (resolved at preview/publish). */
+  globalId: z.uuid().optional(),
   props: z.record(z.string(), z.unknown()),
 });
 export type SectionInstance = z.infer<typeof sectionInstanceSchema>;

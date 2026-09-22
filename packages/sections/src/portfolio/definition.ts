@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { imageField, introInspectorGroup, linkField, textField } from '../shared.ts';
 import { portfolioSchema } from './schema.ts';
@@ -17,10 +18,11 @@ export const portfolioDefinition = defineSection({
   title: 'Portfolio / projects',
   description: 'Selected work as image cards with a category and link.',
   category: 'business',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: portfolioSchema,
   defaults: {
     variant: 'grid',
+    source: manualSource,
     eyebrow: 'Work',
     heading: 'Selected projects',
     description: '',
@@ -48,10 +50,16 @@ export const portfolioDefinition = defineSection({
     { value: 'large', label: 'Large', description: 'One project per row', thumbnail: ['M', 'H T'] },
   ],
   inspector: [
+    {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
     introInspectorGroup,
     {
       id: 'items',
       label: 'Projects',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         {
           path: 'items',
@@ -71,6 +79,8 @@ export const portfolioDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'projects', itemsPath: 'items' },
+  migrations: [addSourceMigration(1)],
   recommendedFor: ['agency', 'photographer', 'freelancer', 'construction', 'wedding'],
   keywords: ['work', 'projects', 'case studies', 'showcase'],
 });

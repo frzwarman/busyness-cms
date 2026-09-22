@@ -1,3 +1,4 @@
+import { addSourceMigration, manualSource } from '../content/source.ts';
 import { defineSection } from '../registry/define.ts';
 import { imageField, introInspectorGroup, textareaField, textField } from '../shared.ts';
 import { locationsSchema } from './schema.ts';
@@ -8,10 +9,11 @@ export const locationsDefinition = defineSection({
   description:
     'Addresses, phone numbers, hours and a “Get directions” link per location. No third-party map scripts.',
   category: 'information',
-  schemaVersion: 1,
+  schemaVersion: 2,
   schema: locationsSchema,
   defaults: {
     variant: 'single',
+    source: manualSource,
     eyebrow: 'Find us',
     heading: 'Visit the roastery',
     description: '',
@@ -41,10 +43,16 @@ export const locationsDefinition = defineSection({
     { value: 'list', label: 'List', thumbnail: ['H T', 'H T'] },
   ],
   inspector: [
+    {
+      id: 'source',
+      label: 'Content source',
+      fields: [{ path: 'source', label: 'Items come from', control: 'content-source' }],
+    },
     introInspectorGroup,
     {
       id: 'items',
       label: 'Locations',
+      showWhen: { path: 'source.mode', values: ['manual'] },
       fields: [
         {
           path: 'items',
@@ -75,6 +83,8 @@ export const locationsDefinition = defineSection({
       ],
     },
   ],
+  collection: { id: 'locations', itemsPath: 'items' },
+  migrations: [addSourceMigration(1)],
   recommendedFor: [
     'restaurant',
     'cafe',

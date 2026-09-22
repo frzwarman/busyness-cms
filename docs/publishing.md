@@ -18,8 +18,9 @@ Built in Milestones 2–3. Everything below exists in `supabase/migrations`.
    site theme into `sites.published_theme`, write `audit_logs` — one transaction.
 3. A trigger makes `page_versions` immutable (no UPDATE; DELETE only via `delete_page` cascade).
 4. Caches: published responses carry `s-maxage=300, stale-while-revalidate` and an ETag equal to the version id.
-   Explicit purge is a hardening item. Global sections and content references are resolved at publish time once
-   those features exist (Milestone 6).
+   Explicit purge is a hardening item.
+5. Content references and globals are resolved by the Studio (`resolveDocument`) and passed as `p_document`; the version
+   stores the inlined result (see [content-and-globals.md](content-and-globals.md)).
 
 ## Rollback
 

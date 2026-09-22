@@ -63,3 +63,6 @@ export const registry = new SectionRegistry([
   portfolioDefinition,
   footerDefinition,
 ]);
+export * from './content/collections.ts';
+export * from './content/resolve.ts';
+export * from './content/source.ts';

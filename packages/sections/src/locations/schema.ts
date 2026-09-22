@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentSourceSchema } from '../content/source.ts';
 import { imageRefSchema, sectionIntroFields, sectionStyleFields } from '../shared.ts';
 
 export const locationItemSchema = z.object({
@@ -16,6 +17,13 @@ export const locationItemSchema = z.object({
 });
 export const locationsSchema = z.object({
   variant: z.enum(['cards', 'list', 'single']),
+  source: contentSourceSchema.default({
+    mode: 'manual',
+    selection: 'all',
+    tag: '',
+    ids: [],
+    limit: 12,
+  }),
   ...sectionIntroFields,
   items: z.array(locationItemSchema).min(1).max(8),
   ...sectionStyleFields,

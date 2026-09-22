@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentSourceSchema } from '../content/source.ts';
 import { imageRefSchema, linkSchema, sectionIntroFields, sectionStyleFields } from '../shared.ts';
 
 export const serviceItemSchema = z.object({
@@ -10,6 +11,13 @@ export const serviceItemSchema = z.object({
 });
 export const servicesSchema = z.object({
   variant: z.enum(['cards', 'list', 'image-cards']),
+  source: contentSourceSchema.default({
+    mode: 'manual',
+    selection: 'all',
+    tag: '',
+    ids: [],
+    limit: 12,
+  }),
   ...sectionIntroFields,
   items: z.array(serviceItemSchema).min(1).max(12),
   ...sectionStyleFields,
