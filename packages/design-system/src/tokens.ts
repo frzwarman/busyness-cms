@@ -1,5 +1,5 @@
 import type { ThemeTokens } from '@siteos/schemas';
-import { contrastLevel, mix, readableOn } from './color.ts';
+import { contrastLevel, contrastRatio, mix, readableOn } from './color.ts';
 import { fontStacks } from './fonts.ts';
 
 const radius = { none: '0px', sm: '4px', md: '8px', lg: '16px', full: '999px' };
@@ -10,12 +10,26 @@ const baseSize = { sm: '15px', md: '16px', lg: '18px' };
 const headingScale = { compact: '1.2', standard: '1.25', dramatic: '1.333' };
 const headingWeight = { medium: '500', semibold: '600', bold: '700' };
 
+/** Step `from` toward `to` until it clears AA (4.5:1) on `bg`; `to` is assumed readable. */
+function readable(from: string, to: string, bg: string): string {
+  for (let i = 0; i <= 20; i++) {
+    const candidate = mix(from, to, i / 20);
+    if (contrastRatio(candidate, bg) >= 4.5) return candidate;
+  }
+  return to;
+}
+function accentText(c: ThemeTokens['colors'], bg: string, fallback: string): string {
+  if (contrastRatio(c.accent, bg) >= 4.5) return c.accent;
+  return contrastRatio(c.primary, bg) >= 4.5 ? c.primary : fallback;
+}
+
 /** Flat map of CSS custom properties derived from theme tokens. Stable names; sections consume only these. */
 export function themeToVariables(t: ThemeTokens): Record<string, string> {
   const c = t.colors;
+  const primaryContrast = readableOn(c.primary);
   return {
     '--color-primary': c.primary,
-    '--color-primary-contrast': readableOn(c.primary),
+    '--color-primary-contrast': primaryContrast,
     '--color-primary-hover': mix(
       c.primary,
       readableOn(c.primary) === '#ffffff' ? '#000000' : '#ffffff',
@@ -26,6 +40,18 @@ export function themeToVariables(t: ThemeTokens): Record<string, string> {
     '--color-secondary-contrast': readableOn(c.secondary),
     '--color-accent': c.accent,
     '--color-accent-contrast': readableOn(c.accent),
+    // Accent as *text* must clear AA on its surface; fall back to primary, then the surface's text.
+    '--color-accent-text': accentText(c, c.background, c.text),
+    '--color-accent-text-on-surface': accentText(c, c.surface, c.text),
+    '--color-accent-text-on-dark': contrastRatio(c.accent, c.text) >= 4.5 ? c.accent : c.background,
+    // Muted text on the derived surfaces is nudged toward solid until it clears AA.
+    '--color-muted-on-surface': readable(c.muted, c.text, c.surface),
+    '--color-muted-on-dark': readable(mix(c.text, c.background, 0.72), c.background, c.text),
+    '--color-muted-on-brand': readable(
+      mix(c.primary, primaryContrast, 0.78),
+      primaryContrast,
+      c.primary,
+    ),
     '--color-background': c.background,
     '--color-surface': c.surface,
     '--color-text': c.text,

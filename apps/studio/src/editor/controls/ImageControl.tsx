@@ -119,21 +119,21 @@ export function ImageControl({
         />
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-alt`} className="text-xs">
+        <Label htmlFor={id} className="text-xs">
           Alt text
         </Label>
         <Input
-          id={`${id}-alt`}
+          id={id}
           value={value.alt}
           maxLength={300}
           disabled={value.decorative}
           onChange={(e) => onChange({ ...value, alt: e.target.value })}
           placeholder="Describe what the image shows"
-          aria-describedby={altMissing ? `${id}-alt-warn` : undefined}
+          aria-describedby={altMissing ? `${id}-warn` : undefined}
         />
         {altMissing && (
           <p
-            id={`${id}-alt-warn`}
+            id={`${id}-warn`}
             className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400"
           >
             <AlertTriangle className="size-3" /> Missing alt text. Describe the image, or mark it

@@ -28,6 +28,11 @@ export const structuredDataSchema = z.object({
 export type StructuredData = z.infer<typeof structuredDataSchema>;
 
 export const siteSettingsSchema = z.object({
+  /** BCP 47 tag for <html lang>, e.g. en, id, en-GB. */
+  language: z
+    .string()
+    .regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/)
+    .default('en'),
   tagline: z.string().max(160).default(''),
   /** Default meta description when a page has none. */
   description: z.string().max(300).default(''),

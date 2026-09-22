@@ -112,11 +112,35 @@ const studioOrigin = import.meta.env.PUBLIC_STUDIO_ORIGIN ?? 'http://localhost:5
           const main = incoming.getElementById('main');
           root.replaceChildren(...(main ? [document.importNode(main, true)] : []));
           applySelection();
-          send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:rendered', ok: true, height: document.documentElement.scrollHeight });
+          const weight = await measureWeight(html.length);
+          send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:rendered', ok: true, height: document.documentElement.scrollHeight, weight });
         } catch (err) {
           if (seq !== renderSeq) return;
           send({ v: PREVIEW_PROTOCOL_VERSION, type: 'siteos:rendered', ok: false, error: err instanceof Error ? err.message : String(err) });
         }
+      }
+
+      /**
+       * Real transfer sizes from Resource Timing, after images and fonts have had a moment to load. The shell's
+       * own dev tooling is excluded. Cross-origin assets need Timing-Allow-Origin (the edge worker sets it).
+       */
+      async function measureWeight(htmlBytes: number) {
+        await new Promise((r) => setTimeout(r, 400));
+        const w = { html: htmlBytes, css: 0, js: 0, fonts: 0, images: 0, other: 0, total: 0, requests: 0 };
+        for (const e of performance.getEntriesByType('resource') as PerformanceResourceTiming[]) {
+          const url = e.name;
+          if (url.includes('/@vite') || url.includes('/@fs/') || url.includes('/@id/') || url.includes('astro-dev-toolbar') || url.includes('/preview/render') || url.includes('/node_modules/')) continue;
+          const size = e.transferSize || e.encodedBodySize || 0;
+          if (!size) continue;
+          w.requests += 1;
+          if (e.initiatorType === 'img' || /\.(png|jpe?g|webp|gif|svg|avif)(\?|$)/i.test(url)) w.images += size;
+          else if (/\.(woff2?|ttf|otf)(\?|$)/i.test(url)) w.fonts += size;
+          else if (e.initiatorType === 'css' || e.initiatorType === 'link' || /\.css(\?|$)/i.test(url)) w.css += size;
+          else if (e.initiatorType === 'script' || /\.[mc]?js(\?|$)/i.test(url)) w.js += size;
+          else w.other += size;
+        }
+        w.total = w.html + w.css + w.js + w.fonts + w.images + w.other;
+        return w;
       }
 
       window.addEventListener('message', (event) => {

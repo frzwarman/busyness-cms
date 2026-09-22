@@ -21,6 +21,7 @@ import { useMemo } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { type EditorPersistence, EditorProvider } from '@/editor/EditorProvider';
 import { EditorShell } from '@/editor/EditorShell';
+import { EditorErrorBoundary } from '@/editor/ErrorBoundary';
 import { requireSession } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { LoginPage } from '@/pages/LoginPage';
@@ -163,7 +164,11 @@ const editorRoute = createRoute({
       queryClient.ensureQueryData(pagesQuery(params.siteId)),
       queryClient.ensureQueryData(draftQuery(params.pageId)),
     ]),
-  component: EditorRoute,
+  component: () => (
+    <EditorErrorBoundary>
+      <EditorRoute />
+    </EditorErrorBoundary>
+  ),
 });
 
 export const router = createRouter({

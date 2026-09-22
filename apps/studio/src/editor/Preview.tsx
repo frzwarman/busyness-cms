@@ -15,7 +15,7 @@ import { useEditor } from './EditorProvider';
 const widths = { desktop: undefined, tablet: 820, mobile: 390 } as const;
 
 export function Preview() {
-  const { state, theme, pages, device, requestFocus } = useEditor();
+  const { state, theme, pages, device, requestFocus, setPageWeight } = useEditor();
   const { resolved } = useResolvedDocument();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
@@ -44,11 +44,12 @@ export function Preview() {
           type: 'siteos:render',
           payload: payloadRef.current,
         });
-      } else if (msg.type === 'siteos:rendered')
+      } else if (msg.type === 'siteos:rendered') {
         setError(msg.ok ? null : (msg.error ?? 'Unknown error'));
-      else if (msg.type === 'siteos:selected') requestFocus(msg.sectionId, msg.fieldPath);
+        if (msg.ok && msg.weight) setPageWeight(msg.weight);
+      } else if (msg.type === 'siteos:selected') requestFocus(msg.sectionId, msg.fieldPath);
     },
-    [requestFocus],
+    [requestFocus, setPageWeight],
   );
   const send = usePreviewBridge(iframeRef, onMessage);
   sendRef.current = send;

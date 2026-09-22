@@ -1,6 +1,9 @@
+import { createRedirect } from '@siteos/db';
 import { canonicalUrl, type ImageRef, type PageDocument, slugSchema } from '@siteos/schemas';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Globe, Search } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -13,8 +16,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { PREVIEW_ORIGIN } from '@/lib/preview-bridge';
+import { supabase } from '@/lib/supabase';
 import { ImageControl } from '../controls/ImageControl';
 import { useEditor } from '../EditorProvider';
+import { publishStateQuery } from '../publish-queries';
 import { Counter } from './SettingsPanel';
 
 /** Per-page SEO with search and social previews. Previews are approximations, labelled as such. */
@@ -25,12 +30,16 @@ export function PageSeoSheet({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
-  const { state, dispatch, siteName, siteSlug, siteSettings, canEdit } = useEditor();
+  const { state, dispatch, siteName, siteSlug, siteSettings, canEdit, siteId } = useEditor();
   const page = state.document;
   const seo = page.seo;
   const setSeo = (patch: Partial<PageDocument['seo']>) =>
     dispatch({ type: 'updateSeo', seo: { ...seo, ...patch } });
   const [slugDraft, setSlugDraft] = useState(page.slug);
+  const [previousSlug, setPreviousSlug] = useState<string | null>(null);
+  const [redirectDone, setRedirectDone] = useState(false);
+  const { data: live } = useQuery(publishStateQuery(page.id));
+  const qc = useQueryClient();
   const slugValid = slugSchema.safeParse(slugDraft).success;
 
   const title =
@@ -80,8 +89,11 @@ export function PageSeoSheet({
               className="font-mono text-xs"
               onChange={(e) => setSlugDraft(e.target.value)}
               onBlur={() => {
-                if (slugValid && slugDraft !== page.slug)
+                if (slugValid && slugDraft !== page.slug) {
+                  setPreviousSlug(page.slug);
+                  setRedirectDone(false);
                   dispatch({ type: 'setSlug', slug: slugDraft });
+                }
               }}
               aria-invalid={!slugValid}
             />
@@ -90,11 +102,27 @@ export function PageSeoSheet({
                 Use lowercase letters, numbers and dashes, starting with /.
               </p>
             )}
-            {slugValid && slugDraft !== page.slug && (
-              <p className="text-[11px] text-muted-foreground">
-                Changing a published address breaks old links. Add a redirect in Site settings from{' '}
-                {page.slug} to {slugDraft}.
-              </p>
+            {previousSlug && previousSlug !== page.slug && live?.publishedVersionId && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                <span>
+                  {redirectDone
+                    ? `Redirect added: ${previousSlug} → ${page.slug}`
+                    : `This page is published at ${previousSlug}. Visitors with the old link will get a 404 after you publish.`}
+                </span>
+                {!redirectDone && (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={async () => {
+                      await createRedirect(supabase, siteId, previousSlug, page.slug);
+                      await qc.invalidateQueries({ queryKey: ['redirects', siteId] });
+                      setRedirectDone(true);
+                    }}
+                  >
+                    Create redirect
+                  </Button>
+                )}
+              </div>
             )}
           </div>
 

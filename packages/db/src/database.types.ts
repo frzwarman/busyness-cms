@@ -750,6 +750,14 @@ export type Database = {
         };
         Returns: boolean;
       };
+      page_refs: {
+        Args: { p_page: string };
+        Returns: {
+          page_id: string;
+          page_title: string;
+          section_id: string;
+        }[];
+      };
       publish_page: {
         Args: { p_document?: Json; p_note?: string; p_page: string };
         Returns: {

@@ -20,6 +20,7 @@
     "@siteos/db": "workspace:*",
     "@siteos/design-system": "workspace:*",
     "@siteos/editor-core": "workspace:*",
+    "@siteos/health": "workspace:*",
     "@siteos/schemas": "workspace:*",
     "@siteos/sections": "workspace:*",
     "@supabase/supabase-js": "^2.116.0",

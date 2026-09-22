@@ -1,4 +1,4 @@
-import { createRedirect, deleteRedirect, deleteSite } from '@siteos/db';
+import { createRedirect, deleteRedirect, deleteSite, listAudit } from '@siteos/db';
 import type { ImageRef, SiteSettings } from '@siteos/schemas';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -115,6 +115,24 @@ export function SettingsPanel() {
             disabled={!canEdit}
             onChange={(e) => set({ canonicalBase: e.target.value.trim() })}
             placeholder="https://"
+          />
+        </Field>
+        <Field
+          id="set-language"
+          label="Site language"
+          hint="Language code for browsers and screen readers, e.g. en, id, en-GB."
+        >
+          <Input
+            id="set-language"
+            value={s.language}
+            maxLength={12}
+            disabled={!canEdit}
+            onChange={(e) =>
+              /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(e.target.value) &&
+              set({ language: e.target.value })
+            }
+            placeholder="en"
+            className="w-32 font-mono"
           />
         </Field>
         <Field id="set-twitter" label="X / Twitter handle">
@@ -278,6 +296,7 @@ export function SettingsPanel() {
       </Section>
 
       <Redirects siteId={siteId} canEdit={canEdit} />
+      <Activity siteId={siteId} />
       <DangerZone />
     </div>
   );
@@ -492,6 +511,54 @@ function DangerZone() {
           {busy ? 'Deleting…' : 'Delete this site permanently'}
         </Button>
       </div>
+    </Section>
+  );
+}
+
+const actionLabels: Record<string, string> = {
+  'site.created': 'Site created',
+  'page.created': 'Page created',
+  'page.deleted': 'Page deleted',
+  'page.published': 'Page published',
+  'page.unpublished': 'Page unpublished',
+  'page.restored': 'Version restored',
+  'theme.changed': 'Brand changed',
+  'settings.changed': 'Site settings changed',
+  'asset.uploaded': 'Asset uploaded',
+  'asset.deleted': 'Asset deleted',
+};
+
+function Activity({ siteId }: { siteId: string }) {
+  const { data } = useQuery({
+    queryKey: ['audit', siteId],
+    queryFn: () => listAudit(supabase, siteId, 40),
+  });
+  const detail = (m: Record<string, unknown>) =>
+    typeof m.title === 'string'
+      ? m.title
+      : typeof m.name === 'string'
+        ? m.name
+        : typeof m.filename === 'string'
+          ? m.filename
+          : m.version
+            ? `v${String(m.version)}`
+            : '';
+  return (
+    <Section title="Activity" hint="Recent changes on this site.">
+      <ul className="grid gap-1 text-xs" aria-label="Activity">
+        {(data ?? []).length === 0 && (
+          <li className="text-muted-foreground">No activity recorded yet.</li>
+        )}
+        {(data ?? []).map((a) => (
+          <li key={a.id} className="flex items-baseline gap-2 rounded-md border px-2 py-1">
+            <span className="font-medium">{actionLabels[a.action] ?? a.action}</span>
+            <span className="truncate text-muted-foreground">{detail(a.metadata)}</span>
+            <time className="ml-auto shrink-0 text-muted-foreground" dateTime={a.createdAt}>
+              {new Date(a.createdAt).toLocaleString()}
+            </time>
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }

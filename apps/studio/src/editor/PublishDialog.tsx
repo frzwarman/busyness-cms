@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { purgePublished } from '@/lib/purge';
 import { supabase } from '@/lib/supabase';
 import { useResolvedDocument } from './content/content-queries';
 import { useEditor } from './EditorProvider';
@@ -31,7 +32,7 @@ export function PublishDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
-  const { state, saveStatus, saveNow } = useEditor();
+  const { state, saveStatus, saveNow, siteId, siteSlug } = useEditor();
   const { resolved, ready } = useResolvedDocument();
   const pageId = state.document.id;
   const qc = useQueryClient();
@@ -60,6 +61,7 @@ export function PublishDialog({
       await qc.invalidateQueries({ queryKey: ['publish', pageId] });
       await qc.invalidateQueries({ queryKey: ['versions', pageId] });
       setDone(v.number);
+      void purgePublished(siteId, siteSlug, state.document.slug); // best effort; the short TTL covers the rest
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Publishing failed.');
     } finally {

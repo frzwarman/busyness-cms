@@ -189,7 +189,7 @@ function NavigatorItem({
           aria-current={selected ? 'true' : undefined}
           className={cn(
             'flex min-w-0 flex-1 flex-col items-start py-1.5 text-left text-sm',
-            section.hidden && 'opacity-50',
+            section.hidden && (selected ? 'text-foreground/75' : 'text-muted-foreground'),
           )}
         >
           <span className="flex items-center gap-1.5 font-medium">
@@ -202,7 +202,14 @@ function NavigatorItem({
             )}
           </span>
           {subtitle && (
-            <span className="w-full truncate text-xs text-muted-foreground">{subtitle}</span>
+            <span
+              className={cn(
+                'w-full truncate text-xs',
+                selected ? 'text-foreground/75' : 'text-muted-foreground',
+              )}
+            >
+              {subtitle}
+            </span>
           )}
         </button>
         <DropdownMenu>

@@ -23,7 +23,7 @@ Both origins must match exactly or the preview refuses messages by design.
 |-------|-------|---------|
 | Studio | Cloudflare Workers static assets (or Pages) | `pnpm --filter @siteos/studio build` → `apps/studio/dist` |
 | Renderer | Cloudflare Worker via `@astrojs/cloudflare` | `pnpm --filter @siteos/renderer build` → `apps/renderer/dist` then `wrangler deploy` |
-| Edge | Cloudflare Worker | `cd apps/edge && pnpm deploy` (after `wrangler secret put UPLOAD_SIGNING_SECRET`) |
+| Edge | Cloudflare Worker | `cd apps/edge && pnpm deploy` (after `wrangler secret put UPLOAD_SIGNING_SECRET`; optionally `CF_ZONE_ID` var + `wrangler secret put CF_API_TOKEN` for purge-on-publish) |
 | Assets | R2 bucket `siteos-assets` | enable R2 in the dashboard, then `wrangler r2 bucket create siteos-assets` |
 | Content (M2) | Supabase project | `supabase db push` migrations |
 

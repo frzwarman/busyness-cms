@@ -9,7 +9,7 @@ lightweight **Astro** site. Users edit business intent (variant, alignment, them
 BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
 ```
 
-> **Status:** Milestones 1–8 are complete: architecture foundation, database + auth, publishing, a 24-type section library, the asset system, the content library with global sections, SEO + forms, and business packs with guided site creation. See
+> **Status:** All nine milestones are complete: architecture foundation, database + auth, publishing, a 24-type section library, the asset system, the content library with global sections, SEO + forms, business packs with guided site creation, and hardening (health checks, measured performance, purge hook, error recovery, accessibility sweep). See
 > [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
 
 ## What works today
@@ -25,6 +25,9 @@ BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS
 - Content library: eight predefined collections (testimonials, services, team, locations, FAQs, logos, stats, projects)
   edited once and shown by any list section via `source` (all / by tag / picked). Global sections (edit once, appears on
   every page, detach to localize). Published versions inline both, so they stay self-contained.
+- Website Health: deterministic checks for brand, SEO, accessibility, content and performance with jump-to-fix,
+  plus real transfer sizes measured in the preview. Purge hook on publish, error boundary, page deletion with
+  incoming-link warnings, one-click redirects, activity log, `lang` per site, axe-clean Studio and public pages.
 - Guided site creation: 16 business packs with real copy, 13 deterministic page recipes, suggested theme + structured
   data, navbar/footer created as globals, a Contact (and pack-specific) form, and a review step. Nothing references
   the pack afterwards. New pages ask what they should accomplish; the section picker opens on "Recommended for you".
@@ -91,7 +94,7 @@ packages/
   design-system/   theme presets · token → CSS variables · base.css · contrast math
   editor-core/     framework-free editor reducer (add/move/duplicate/hide/update, coalesced undo/redo)
   content-sdk/     (M3) typed client for the published-content API
-docs/              architecture, section authoring, migrations, design system, publishing, assets, content & globals, SEO & forms, security, deployment, business packs
+docs/              architecture, section authoring, migrations, design system, publishing, assets, content & globals, SEO & forms, health & hardening, security, deployment, business packs
 e2e/               Playwright flows
 ```
 
@@ -242,8 +245,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 
 ## Known limitations (Milestone 1)
 
-- Cache invalidation on publish relies on short `s-maxage` (5 min) rather than an explicit purge; a Cloudflare
-  purge hook is a hardening item.
+- Cache invalidation on publish uses a 60-second edge TTL plus a purge hook that activates once Cloudflare zone
+  credentials are configured on the edge worker.
 - Public site routing is path-based (`/s/<site-slug>/…`) or a single default site via `DEFAULT_SITE_SLUG`;
   platform subdomains are supported when `PUBLIC_PLATFORM_DOMAIN` is set, custom domains are not yet.
 - Invitations UI is not built; members are added via SQL/dashboard for now (owners/admins may insert `site_members`).
@@ -263,7 +266,7 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 | 6 Content + globals | reusable collections, global sections, detach | **done** |
 | 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox, public design pass | **done** |
 | 8 Business packs | 16 packs, 13 recipes, guided creation, recipe-based new page | **done** |
-| 9 Hardening | a11y, performance, caching, mobile editor, health checks | next |
+| 9 Hardening | health checks, measured weight, purge hook, error recovery, axe sweep, mobile e2e | **done** |
 
 ## Third-party assets
 

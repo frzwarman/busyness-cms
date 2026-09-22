@@ -26,6 +26,16 @@ async function openEditor(page: Page): Promise<FrameLocator> {
   await expect(preview.locator('[data-section-type="hero"] h1')).toHaveText(
     'Coffee worth slowing down for',
   );
+  // An interrupted earlier run can leave hidden sections behind; remove them so counts stay predictable.
+  const items = page.getByRole('list', { name: /Page sections/ }).locator('> li');
+  for (let guard = 0; guard < 10; guard++) {
+    const stale = items.filter({ has: page.getByLabel('Hidden', { exact: true }) }).first();
+    if ((await stale.count()) === 0) break;
+    await stale.hover();
+    await stale.getByRole('button', { name: /actions$/ }).click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
+    await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
+  }
   return preview;
 }
 
@@ -47,6 +57,9 @@ test('sections can be added, reordered and hidden', async ({ page }) => {
       .locator('main [data-section-type]')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-section-type')));
   expect(await types()).toEqual(['hero', 'image-text', 'cta']);
+  // Direct children only: the selected section nests its inspector groups in a sub-list.
+  const items = page.getByRole('list', { name: /Page sections/ }).locator('> li');
+  const before = await items.count();
 
   // Add a CTA (card layout) after the currently selected hero.
   await page.getByRole('button', { name: 'Add section' }).click();
@@ -56,8 +69,6 @@ test('sections can be added, reordered and hidden', async ({ page }) => {
   await expect.poll(types).toEqual(['hero', 'cta', 'image-text', 'cta']);
 
   // Reorder via the accessible menu (drag has a keyboard/menu alternative by design).
-  // Direct children only: the selected section nests its inspector groups in a sub-list.
-  const items = page.getByRole('list', { name: /Page sections/ }).locator('> li');
   await items.nth(2).hover();
   await items
     .nth(2)
@@ -74,7 +85,25 @@ test('sections can be added, reordered and hidden', async ({ page }) => {
     .click();
   await page.getByRole('menuitem', { name: 'Hide' }).click();
   await expect.poll(types).toEqual(['hero', 'image-text', 'cta']);
-  await expect(items).toHaveCount(4);
+  await expect(items).toHaveCount(before + 1);
+
+  // Leave the page as we found it: show the original again, then delete the one we added.
+  await items.nth(3).hover();
+  await items
+    .nth(3)
+    .getByRole('button', { name: /Call to action actions/ })
+    .click();
+  await page.getByRole('menuitem', { name: 'Show' }).click();
+  await expect.poll(types).toEqual(['hero', 'image-text', 'cta', 'cta']);
+  await items.nth(2).hover();
+  await items
+    .nth(2)
+    .getByRole('button', { name: /Call to action actions/ })
+    .click();
+  await page.getByRole('menuitem', { name: 'Delete' }).click();
+  await expect.poll(types).toEqual(['hero', 'image-text', 'cta']);
+  await expect(items).toHaveCount(before);
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
 });
 
 test('clicking in the preview selects the section and focuses the field', async ({ page }) => {

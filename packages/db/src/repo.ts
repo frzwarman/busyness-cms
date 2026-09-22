@@ -747,3 +747,39 @@ export async function deleteSite(db: Db, siteId: string): Promise<string[]> {
   if (error) throw new Error(`Deleting site: ${error.message}`);
   return data ?? [];
 }
+
+/** Draft pages whose typed links point at this page (for delete warnings). */
+export async function pageRefs(db: Db, pageId: string): Promise<Ref[]> {
+  const rows = unwrap(await db.rpc('page_refs', { p_page: pageId }), 'Checking links to this page');
+  return rows.map((r) => ({ pageId: r.page_id, pageTitle: r.page_title, sectionId: r.section_id }));
+}
+
+export type AuditEntry = {
+  id: number;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  actor: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+export async function listAudit(db: Db, siteId: string, limit = 50): Promise<AuditEntry[]> {
+  const rows = unwrap(
+    await db
+      .from('audit_logs')
+      .select('id, action, entity_type, entity_id, actor, metadata, created_at')
+      .eq('site_id', siteId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    'Loading activity',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    action: r.action,
+    entityType: r.entity_type,
+    entityId: r.entity_id,
+    actor: r.actor,
+    metadata: (r.metadata ?? {}) as Record<string, unknown>,
+    createdAt: r.created_at,
+  }));
+}

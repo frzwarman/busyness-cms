@@ -38,7 +38,8 @@ const { props: p, section } = Astro.props;
   .items { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
   .row { display: flex; align-items: baseline; gap: .5rem; }
   .name { font-weight: 600; }
-  .tags { font-size: .75rem; font-weight: 700; letter-spacing: .08em; color: var(--color-accent); }
+  .tags { font-size: .75rem; font-weight: 700; letter-spacing: .08em; color: var(--color-accent-text); }
+  .theme-surface .tags { color: var(--color-accent-text-on-surface); }
   .dots { flex: 1; border-bottom: 1px dotted var(--section-border); transform: translateY(-.35em); }
   .price { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
   .desc { font-size: .9375rem; margin-top: .15rem; }

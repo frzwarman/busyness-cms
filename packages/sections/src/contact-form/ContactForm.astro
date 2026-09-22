@@ -107,7 +107,7 @@ const fid = (id: string) => `${section.id}-${id}`;
   .form { display: grid; gap: 1.1rem; max-width: 34rem; }
   .field { display: grid; gap: .4rem; }
   .field label { font-weight: 600; font-size: .95rem; }
-  .req { color: var(--color-accent); }
+  .req { color: var(--color-accent-text); }
   input:not([type=checkbox]):not([type=radio]), textarea, select { font: inherit; color: var(--section-fg); background: color-mix(in srgb, var(--section-bg) 88%, var(--section-fg) 0%); border: 1.5px solid var(--section-border); border-radius: var(--radius-md); padding: .7rem .9rem; width: 100%; transition: border-color .15s, box-shadow .15s; }
   .theme-light input:not([type=checkbox]):not([type=radio]), .theme-light textarea, .theme-light select { background: var(--color-background); }
   input:focus, textarea:focus, select:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent); }

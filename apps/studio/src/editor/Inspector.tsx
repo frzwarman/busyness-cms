@@ -11,7 +11,7 @@ import {
   type SectionDefinition,
 } from '@siteos/sections';
 import { Copy, Eye, EyeOff, Globe, Trash2, Unlink } from 'lucide-react';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,7 +34,11 @@ import { IconControl } from './controls/IconControl';
 import { ImageControl } from './controls/ImageControl';
 import { LinkControl } from './controls/LinkControl';
 import { ListControl } from './controls/ListControl';
-import { RichTextControl } from './controls/RichTextControl';
+
+const RichTextControl = lazy(() =>
+  import('./controls/RichTextControl').then((m) => ({ default: m.RichTextControl })),
+);
+
 import { Segmented } from './controls/Segmented';
 import { useEditor, useSelectedSection } from './EditorProvider';
 import { Thumbnail } from './Thumbnail';
@@ -504,11 +508,17 @@ export function renderControl(
       );
     case 'richtext':
       return (
-        <RichTextControl
-          id={id}
-          value={(value as RichTextDoc | undefined) ?? { type: 'doc', content: [] }}
-          onChange={(v) => onChange(v)}
-        />
+        <Suspense
+          fallback={
+            <div className="h-28 animate-pulse rounded-md border bg-muted/40" aria-busy="true" />
+          }
+        >
+          <RichTextControl
+            id={id}
+            value={(value as RichTextDoc | undefined) ?? { type: 'doc', content: [] }}
+            onChange={(v) => onChange(v)}
+          />
+        </Suspense>
       );
     case 'list':
       return (

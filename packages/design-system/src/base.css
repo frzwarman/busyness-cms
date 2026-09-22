@@ -120,17 +120,18 @@ a {
 }
 .section.theme-surface {
   --section-bg: var(--color-surface);
+  --section-muted: var(--color-muted-on-surface);
 }
 .section.theme-dark {
   --section-bg: var(--color-text);
   --section-fg: var(--color-background);
-  --section-muted: color-mix(in srgb, var(--color-background) 72%, transparent);
+  --section-muted: var(--color-muted-on-dark);
   --section-border: color-mix(in srgb, var(--color-background) 18%, transparent);
 }
 .section.theme-brand {
   --section-bg: var(--color-primary);
   --section-fg: var(--color-primary-contrast);
-  --section-muted: color-mix(in srgb, var(--color-primary-contrast) 78%, transparent);
+  --section-muted: var(--color-muted-on-brand);
   --section-border: color-mix(in srgb, var(--color-primary-contrast) 22%, transparent);
 }
 .section.spacing-none {
@@ -250,17 +251,19 @@ a {
 .eyebrow {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   letter-spacing: 0;
   text-transform: none;
   max-width: none;
 }
+.theme-surface .eyebrow {
+  color: var(--color-accent-text-on-surface);
+}
 .theme-brand .eyebrow {
-  color: var(--section-fg);
-  opacity: 0.85;
+  color: var(--section-muted);
 }
 .theme-dark .eyebrow {
-  color: var(--color-accent);
+  color: var(--color-accent-text-on-dark);
 }
 .media {
   border-radius: var(--radius-lg);

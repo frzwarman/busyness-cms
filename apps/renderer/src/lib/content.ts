@@ -34,7 +34,8 @@ export function siteFromRequest(request: Request): string | null {
   return import.meta.env.DEFAULT_SITE_SLUG ?? null;
 }
 
-export const PUBLISHED_CACHE = 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400';
+// Edge TTL is short so publishes land within a minute even without a purge; the purge hook makes it instant.
+export const PUBLISHED_CACHE = 'public, max-age=0, s-maxage=60, stale-while-revalidate=86400';
 
 export function normalizeSlug(param: string | undefined): string {
   const s = `/${param ?? ''}`.replace(/\/+$/, '');

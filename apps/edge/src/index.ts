@@ -50,6 +50,8 @@ app.get('/assets/*', async (c) => {
   headers.set('ETag', obj.httpEtag);
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
   headers.set('X-Content-Type-Options', 'nosniff');
+  // Lets the Studio preview measure asset transfer sizes via Resource Timing.
+  headers.set('Timing-Allow-Origin', '*');
   if (c.req.header('If-None-Match') === obj.httpEtag)
     return new Response(null, { status: 304, headers });
   return new Response(obj.body, { headers });
@@ -386,6 +388,47 @@ app.post('/forms/:formId', formCors, async (c) => {
   if (wantsJson) return c.json({ ok: true, message });
   const back = (c.req.header('Referer') ?? '/').split('#')[0] as string;
   return c.redirect(`${back}${back.includes('?') ? '&' : '?'}submitted=${formId}#${formId}`, 303);
+});
+
+// ---------------------------------------------------------------------------
+// Cache purge after publish. Active only when CF_ZONE_ID + CF_API_TOKEN are configured; otherwise a no-op
+// that says so, and the short s-maxage on published responses does the work.
+// ---------------------------------------------------------------------------
+app.post('/cache/purge', async (c) => {
+  const auth = c.req.header('Authorization') ?? '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const user = token ? await getUser(c.env, token) : null;
+  if (!user) return c.json({ error: 'Sign in required' }, 401);
+  const parsed = z
+    .object({ siteId: uuid, urls: z.array(z.url()).min(1).max(30) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'Invalid request' }, 400);
+  const role = await siteRole(c.env, token, parsed.data.siteId, user.id);
+  if (!role || role === 'viewer' || role === 'editor')
+    return c.json({ error: 'Publishers only' }, 403);
+  if (!c.env.CF_ZONE_ID || !c.env.CF_API_TOKEN)
+    return c.json({ purged: false, reason: 'not-configured' });
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${c.env.CF_ZONE_ID}/purge_cache`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${c.env.CF_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ files: parsed.data.urls }),
+    },
+  );
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    errors?: Array<{ message: string }>;
+  };
+  if (!res.ok || !body.success)
+    return c.json(
+      { purged: false, reason: body.errors?.[0]?.message ?? `Cloudflare responded ${res.status}` },
+      502,
+    );
+  return c.json({ purged: true, count: parsed.data.urls.length });
 });
 
 app.get('/health', (c) => c.json({ ok: true }));

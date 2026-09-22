@@ -53,6 +53,36 @@ describe('tokens', () => {
       new RegExp(`^:root\\{--color-primary:${defaultTheme.colors.primary};`),
     );
   });
+  it('picks an accent for text that clears AA on the background', () => {
+    const modern = themePresets.find((p) => p.id === 'modern');
+    if (!modern) throw new Error('modern preset missing');
+    const vars = themeToVariables(modern.tokens);
+    // Modern's teal accent is decorative; as text it falls back to the primary blue.
+    expect(vars['--color-accent-text']).toBe(modern.tokens.colors.primary);
+    for (const p of themePresets) {
+      const v = themeToVariables(p.tokens);
+      expect(
+        contrastLevel(v['--color-accent-text'] as string, p.tokens.colors.background),
+        p.id,
+      ).toMatch(/AA/);
+    }
+  });
+  it('derives muted and accent text that clears AA on every section surface', () => {
+    for (const p of themePresets) {
+      const c = p.tokens.colors;
+      const v = themeToVariables(p.tokens);
+      const pairs: Array<[string, string]> = [
+        ['--color-muted-on-surface', c.surface],
+        ['--color-muted-on-dark', c.text],
+        ['--color-muted-on-brand', c.primary],
+        ['--color-accent-text-on-surface', c.surface],
+        ['--color-accent-text-on-dark', c.text],
+      ];
+      for (const [k, bg] of pairs)
+        expect(contrastRatio(v[k] as string, bg), `${p.id} ${k}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('warns on low-contrast combinations without mutating input', () => {
     const bad = structuredClone(defaultTheme);
     bad.colors.text = '#bbbbbb';

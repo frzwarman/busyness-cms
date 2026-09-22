@@ -10,7 +10,9 @@
     "SUPABASE_URL": "",
     "SUPABASE_PUBLISHABLE_KEY": "",
     // Public base URL for asset bytes. Leave empty to serve from this worker at /assets/<key>.
-    "PUBLIC_ASSET_BASE_URL": ""
+    "PUBLIC_ASSET_BASE_URL": "",
+    // Optional cache purge on publish: set CF_ZONE_ID here and CF_API_TOKEN as a secret.
+    "CF_ZONE_ID": ""
   },
   "observability": { "enabled": true }
 }

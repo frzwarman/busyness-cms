@@ -27,6 +27,11 @@
 (`.section.theme-light|surface|dark|brand` set `--section-bg/--section-fg/--section-muted/--section-border`),
 spacing classes, `.container`, `.btn .btn-filled|outline|text`, `.card`, `.eyebrow`, `.media`.
 
+Text colors the user never picks are derived to clear WCAG AA (4.5:1) on the surface they sit on:
+`--color-accent-text` / `-on-surface` / `-on-dark` (accent, else primary, else the surface's text) and
+`--color-muted-on-surface|dark|brand` (the muted tone stepped toward solid until it passes). Section surfaces and
+`.eyebrow` consume these, so a decorative accent or a translucent muted never becomes unreadable copy.
+
 ## Fonts
 
 Seven self-hosted variable families (SIL OFL 1.1): Inter, Manrope, DM Sans, Space Grotesk, Fraunces, Playfair Display,

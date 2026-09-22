@@ -8,10 +8,12 @@ type Props = SectionRenderProps<CtaProps>;
 const { props: p, section, ctx } = Astro.props;
 const headingId = `${section.id}-heading`;
 // The card variant paints its own surface, so the section stays on the page background.
+// A "light" card would vanish on the page background, so it takes the surface tone instead.
 const frameTheme = p.variant === 'card' ? 'light' : p.theme;
+const cardTheme = p.theme === 'light' ? 'surface' : p.theme;
 ---
 <SectionFrame section={section} theme={frameTheme} spacing={p.spacing} labelledBy={headingId} class:list={[`v-${p.variant}`]}>
-  <div class:list={['inner', p.variant === 'card' && 'card', p.variant === 'card' && `theme-${p.theme}`, p.variant === 'card' && 'section']}>
+  <div class:list={['inner', p.variant === 'card' && 'card', p.variant === 'card' && `theme-${cardTheme}`, p.variant === 'card' && 'section']}>
     <div class="copy">
       {p.eyebrow && <p class="eyebrow" data-field="eyebrow">{p.eyebrow}</p>}
       <h2 id={headingId} class="t-h2" data-field="heading">{p.heading}</h2>
@@ -35,7 +37,8 @@ const frameTheme = p.variant === 'card' ? 'light' : p.theme;
   .v-banner .copy h2 { max-width: 20ch; margin-inline: auto; }
   .v-banner .actions { justify-content: center; }
   .v-card .inner { padding: calc(var(--card-spacing) * 2); border-radius: var(--radius-lg); }
-  .v-card .inner.section { padding-block: calc(var(--card-spacing) * 2); }
+  /* The card is a themed mini-section: its own surface tokens win over the generic card surface. */
+  .v-card .inner.section { padding-block: calc(var(--card-spacing) * 2); background: var(--section-bg); }
   @media (min-width: 900px) {
     .v-split .inner { grid-template-columns: 1fr auto; align-items: center; gap: 3rem; }
     .v-card .inner { grid-template-columns: 1fr auto; align-items: center; }

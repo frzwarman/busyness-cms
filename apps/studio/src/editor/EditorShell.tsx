@@ -1,12 +1,23 @@
-import { FileText, Images, Inbox, Layers, LibraryBig, Palette, Settings } from 'lucide-react';
+import {
+  FileText,
+  HeartPulse,
+  Images,
+  Inbox,
+  Layers,
+  LibraryBig,
+  Palette,
+  Settings,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import { AssetLibrary } from './assets/AssetLibrary';
 import { BrandPanel } from './BrandPanel';
 import { ContentPanel } from './content/ContentPanel';
 import { FormsPanel } from './forms/FormsPanel';
+import { HealthPanel } from './health/HealthPanel';
 import { Inspector } from './Inspector';
 import { Navigator } from './Navigator';
 import { PagesPanel } from './PagesPanel';
@@ -15,7 +26,7 @@ import { SectionPicker } from './SectionPicker';
 import { SettingsPanel } from './site/SettingsPanel';
 import { TopBar } from './TopBar';
 
-type Tool = 'pages' | 'sections' | 'assets' | 'content' | 'forms' | 'brand' | 'settings';
+type Tool = 'pages' | 'sections' | 'assets' | 'content' | 'forms' | 'brand' | 'health' | 'settings';
 const tools: Array<{ id: Tool; label: string; icon: typeof Layers }> = [
   { id: 'pages', label: 'Pages', icon: FileText },
   { id: 'sections', label: 'Sections', icon: Layers },
@@ -23,10 +34,11 @@ const tools: Array<{ id: Tool; label: string; icon: typeof Layers }> = [
   { id: 'content', label: 'Content', icon: LibraryBig },
   { id: 'forms', label: 'Forms', icon: Inbox },
   { id: 'brand', label: 'Brand', icon: Palette },
+  { id: 'health', label: 'Website health', icon: HeartPulse },
   { id: 'settings', label: 'Site settings', icon: Settings },
 ];
 
-function ToolPanel({ tool }: { tool: Tool }) {
+function ToolPanel({ tool, setTool }: { tool: Tool; setTool: (t: Tool) => void }) {
   switch (tool) {
     case 'pages':
       return <PagesPanel />;
@@ -40,6 +52,8 @@ function ToolPanel({ tool }: { tool: Tool }) {
       return <FormsPanel />;
     case 'brand':
       return <BrandPanel />;
+    case 'health':
+      return <HealthPanel onOpenTool={setTool} />;
     case 'settings':
       return <SettingsPanel />;
   }
@@ -79,7 +93,7 @@ function LeftPanel({ tool, setTool }: { tool: Tool; setTool: (t: Tool) => void }
         aria-label={tools.find((t) => t.id === tool)?.label}
       >
         <div className="h-full overflow-auto">
-          <ToolPanel tool={tool} />
+          <ToolPanel tool={tool} setTool={setTool} />
         </div>
       </div>
     </div>
@@ -90,32 +104,42 @@ export function EditorShell() {
   const [tool, setTool] = useState<Tool>('sections');
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
+  // Tailwind `lg`. Each panel is mounted once (inline or as a sheet) so field ids and labels stay unique.
+  const desktop = useMediaQuery('(min-width: 64rem)');
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       <TopBar onOpenLeft={() => setLeftOpen(true)} onOpenRight={() => setRightOpen(true)} />
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[22rem] shrink-0 border-r lg:block" aria-label="Site tools">
-          <LeftPanel tool={tool} setTool={setTool} />
-        </aside>
+        {desktop && (
+          <aside className="w-[22rem] shrink-0 border-r" aria-label="Site tools">
+            <LeftPanel tool={tool} setTool={setTool} />
+          </aside>
+        )}
         <main className="min-w-0 flex-1 bg-muted/40">
           <Preview />
         </main>
-        <aside className="hidden w-80 shrink-0 border-l lg:block" aria-label="Section settings">
-          <Inspector />
-        </aside>
+        {desktop && (
+          <aside className="w-80 shrink-0 border-l" aria-label="Section settings">
+            <Inspector />
+          </aside>
+        )}
       </div>
-      <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
-        <SheetContent side="left" className="w-[22rem] p-0">
-          <SheetTitle className="sr-only">Site tools</SheetTitle>
-          <LeftPanel tool={tool} setTool={setTool} />
-        </SheetContent>
-      </Sheet>
-      <Sheet open={rightOpen} onOpenChange={setRightOpen}>
-        <SheetContent side="right" className="w-80 p-0">
-          <SheetTitle className="sr-only">Section settings</SheetTitle>
-          <Inspector />
-        </SheetContent>
-      </Sheet>
+      {!desktop && (
+        <>
+          <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
+            <SheetContent side="left" className="w-[22rem] p-0">
+              <SheetTitle className="sr-only">Site tools</SheetTitle>
+              <LeftPanel tool={tool} setTool={setTool} />
+            </SheetContent>
+          </Sheet>
+          <Sheet open={rightOpen} onOpenChange={setRightOpen}>
+            <SheetContent side="right" className="w-80 p-0">
+              <SheetTitle className="sr-only">Section settings</SheetTitle>
+              <Inspector />
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
       <SectionPicker />
     </div>
   );

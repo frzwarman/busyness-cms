@@ -69,10 +69,11 @@ export function TopBar({
     siteSlug,
     canEdit,
     canPublish,
+    pageSeoOpen,
+    setPageSeoOpen,
   } = useEditor();
   const [publishOpen, setPublishOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [seoOpen, setSeoOpen] = useState(false);
   const { data: live } = useQuery(publishStateQuery(state.document.id));
   const liveDiffers = live?.publishedDocument
     ? JSON.stringify(live.publishedDocument) !== JSON.stringify(state.document)
@@ -139,6 +140,7 @@ export function TopBar({
               disabled={!selectors.canUndo(state)}
               onClick={() => dispatch({ type: 'undo' })}
               aria-label="Undo"
+              className="hidden sm:inline-flex"
             >
               <Undo2 />
             </Button>
@@ -153,6 +155,7 @@ export function TopBar({
               disabled={!selectors.canRedo(state)}
               onClick={() => dispatch({ type: 'redo' })}
               aria-label="Redo"
+              className="hidden sm:inline-flex"
             >
               <Redo2 />
             </Button>
@@ -164,6 +167,7 @@ export function TopBar({
             <Button
               variant="ghost"
               size="icon"
+              className="hidden sm:inline-flex"
               onClick={toggle}
               aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
@@ -177,7 +181,7 @@ export function TopBar({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setSeoOpen(true)}
+              onClick={() => setPageSeoOpen(true)}
               aria-label="Page settings"
             >
               <Settings2 />
@@ -190,6 +194,7 @@ export function TopBar({
             <Button
               variant="ghost"
               size="icon"
+              className="hidden sm:inline-flex"
               onClick={() => setHistoryOpen(true)}
               aria-label="Version history"
             >
@@ -239,7 +244,7 @@ export function TopBar({
         </Tooltip>
         <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} />
-        <PageSeoSheet open={seoOpen} onOpenChange={setSeoOpen} />
+        <PageSeoSheet open={pageSeoOpen} onOpenChange={setPageSeoOpen} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Account">
@@ -247,6 +252,12 @@ export function TopBar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem className="sm:hidden" onSelect={() => setPageSeoOpen(true)}>
+              <Settings2 /> Page settings
+            </DropdownMenuItem>
+            <DropdownMenuItem className="sm:hidden" onSelect={() => setHistoryOpen(true)}>
+              <History /> Version history
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/new-site">Create another site</Link>
             </DropdownMenuItem>

@@ -40,6 +40,19 @@ export const previewToStudioMessageSchema = z.discriminatedUnion('type', [
     ok: z.boolean(),
     height: z.number().optional(),
     error: z.string().optional(),
+    /** Measured transfer sizes of the rendered page's resources (Resource Timing), in bytes. */
+    weight: z
+      .object({
+        html: z.number(),
+        css: z.number(),
+        js: z.number(),
+        fonts: z.number(),
+        images: z.number(),
+        other: z.number(),
+        total: z.number(),
+        requests: z.number(),
+      })
+      .optional(),
   }),
   z.object({
     v: z.literal(PREVIEW_PROTOCOL_VERSION),

@@ -6,6 +6,7 @@ import {
   type EditorState,
   selectors,
 } from '@siteos/editor-core';
+import type { PageWeight } from '@siteos/health';
 import type { PageDocument, PageSummary, SiteSettings, ThemeTokens } from '@siteos/schemas';
 import { registry } from '@siteos/sections';
 import { useQueryClient } from '@tanstack/react-query';
@@ -58,6 +59,11 @@ type EditorContextValue = {
   requestFocus: (sectionId: string, fieldPath: string | null) => void;
   pickerOpen: boolean;
   setPickerOpen: (open: boolean) => void;
+  pageWeight: PageWeight | null;
+  setPageWeight: (w: PageWeight | null) => void;
+  pageSeoOpen: boolean;
+  setPageSeoOpen: (open: boolean) => void;
+  openPageSeo: () => void;
 };
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -97,6 +103,9 @@ export function EditorProvider({
   const [device, setDevice] = useState<Device>('desktop');
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pageWeight, setPageWeight] = useState<PageWeight | null>(null);
+  const [pageSeoOpen, setPageSeoOpen] = useState(false);
+  const openPageSeo = useCallback(() => setPageSeoOpen(true), []);
   const [saveError, setSaveError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const revision = useRef(persistence.initialRevision);
@@ -244,6 +253,11 @@ export function EditorProvider({
       requestFocus,
       pickerOpen,
       setPickerOpen,
+      pageWeight,
+      setPageWeight,
+      pageSeoOpen,
+      setPageSeoOpen,
+      openPageSeo,
     }),
     [
       state,
@@ -265,6 +279,9 @@ export function EditorProvider({
       focusRequest,
       requestFocus,
       pickerOpen,
+      pageWeight,
+      pageSeoOpen,
+      openPageSeo,
     ],
   );
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
