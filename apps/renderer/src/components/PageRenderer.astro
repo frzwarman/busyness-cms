@@ -7,12 +7,13 @@ import type { PageDocument, PageSummary, ThemeTokens } from '@siteos/schemas';
 import { createRenderContext } from '@siteos/sections';
 import SectionRenderer from './SectionRenderer.astro';
 
-interface Props { page: PageDocument; theme: ThemeTokens; pages: PageSummary[]; mode: 'public' | 'preview' }
-const { page, pages, mode } = Astro.props;
+interface Props { page: PageDocument; theme: ThemeTokens; pages: PageSummary[]; mode: 'public' | 'preview'; submittedFormId?: string }
+const { page, pages, mode, submittedFormId } = Astro.props;
 const visible = page.sections.filter((s) => !s.hidden);
+const formsEndpoint = import.meta.env.PUBLIC_EDGE_ORIGIN;
 ---
 <main id="main">
   {visible.map((section, i) => (
-    <SectionRenderer section={section} ctx={createRenderContext({ mode, pages, isFirst: i === 0 })} />
+    <SectionRenderer section={section} ctx={createRenderContext({ mode, pages, isFirst: i === 0, formsEndpoint, pageSlug: page.slug, submittedFormId })} />
   ))}
 </main>

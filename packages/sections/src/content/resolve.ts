@@ -1,4 +1,4 @@
-import type { PageDocument, SectionInstance } from '@siteos/schemas';
+import type { FormDefinition, PageDocument, SectionInstance } from '@siteos/schemas';
 import type { SectionRegistry } from '../registry/registry.ts';
 import { contentSourceSchema } from './source.ts';
 
@@ -13,7 +13,11 @@ export type GlobalSection = {
   name: string;
   section: { type: string; schemaVersion: number; props: Record<string, unknown> };
 };
-export type ResolveInputs = { entries: ContentEntry[]; globals: GlobalSection[] };
+export type ResolveInputs = {
+  entries: ContentEntry[];
+  globals: GlobalSection[];
+  forms?: FormDefinition[];
+};
 
 /**
  * Turn references into content: collection-sourced sections get their `items` filled from the library, and
@@ -45,6 +49,11 @@ export function resolveSection(
         props: structuredClone(g.section.props),
       };
   }
+  // Form sections inline their form definition so the public page needs no lookup.
+  if (s.type === 'contact-form' && typeof s.props.formId === 'string') {
+    const f = inputs.forms?.find((x) => x.id === s.props.formId);
+    s = { ...s, props: { ...s.props, form: f ? structuredClone(f) : (s.props.form ?? null) } };
+  }
   const def = registry.get(s.type);
   if (!def?.collection) return s;
   const parsed = contentSourceSchema.safeParse(s.props.source);
@@ -72,6 +81,7 @@ export function hasReferences(doc: PageDocument, registry: SectionRegistry): boo
   return doc.sections.some(
     (s) =>
       s.globalId ||
+      (s.type === 'contact-form' && s.props.formId) ||
       (registry.get(s.type)?.collection &&
         (s.props.source as { mode?: string } | undefined)?.mode === 'collection'),
   );

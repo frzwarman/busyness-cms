@@ -39,6 +39,8 @@ export type EditorAction =
       index?: number;
     }
   | { type: 'renamePage'; title: string }
+  | { type: 'setSlug'; slug: string }
+  | { type: 'updateSeo'; seo: PageDocument['seo'] }
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'markSaved' };
@@ -203,7 +205,13 @@ export function createEditorReducer(registry: SectionRegistry) {
       }
 
       case 'renamePage':
-        return commit(state, { ...state.document, title: action.title });
+        return commit(state, { ...state.document, title: action.title }, 'page:title', Date.now());
+
+      case 'setSlug':
+        return commit(state, { ...state.document, slug: action.slug });
+
+      case 'updateSeo':
+        return commit(state, { ...state.document, seo: action.seo }, 'page:seo', Date.now());
 
       case 'undo': {
         const previous = state.past.at(-1);

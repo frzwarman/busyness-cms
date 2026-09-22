@@ -33,6 +33,10 @@ export function themeToVariables(t: ThemeTokens): Record<string, string> {
     '--color-border': mix(c.text, c.background, 0.85),
     '--font-heading': fontStacks[t.typography.headingFont].stack,
     '--font-body': fontStacks[t.typography.bodyFont].stack,
+    // Serif body text gets a longer measure and more leading (Bringhurst); display faces track tighter.
+    '--body-leading': fontStacks[t.typography.bodyFont].serif ? '1.7' : '1.6',
+    '--measure': fontStacks[t.typography.bodyFont].serif ? '68ch' : '62ch',
+    '--display-tracking': fontStacks[t.typography.headingFont].serif ? '-0.015em' : '-0.03em',
     '--font-size-base': baseSize[t.typography.baseSize],
     '--heading-scale': headingScale[t.typography.headingScale],
     '--heading-weight': headingWeight[t.typography.headingWeight],
@@ -43,6 +47,10 @@ export function themeToVariables(t: ThemeTokens): Record<string, string> {
     '--container-width': contentWidth[t.layout.contentWidth],
     '--section-spacing': sectionSpacing[t.layout.sectionSpacing],
     '--card-spacing': cardSpacing[t.layout.cardSpacing],
+    // Shadows tinted with the text color read as depth on any palette.
+    '--shadow-sm': `0 1px 2px color-mix(in srgb, ${c.text} 8%, transparent)`,
+    '--shadow-md': `0 8px 24px -12px color-mix(in srgb, ${c.text} 28%, transparent)`,
+    '--shadow-lg': `0 24px 60px -24px color-mix(in srgb, ${c.text} 40%, transparent)`,
   };
 }
 

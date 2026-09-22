@@ -15,6 +15,7 @@ import {
   Redo2,
   RefreshCw,
   Rocket,
+  Settings2,
   Smartphone,
   Sun,
   Tablet,
@@ -40,6 +41,7 @@ import { type Device, useEditor } from './EditorProvider';
 import { HistorySheet } from './HistorySheet';
 import { PublishDialog } from './PublishDialog';
 import { publishStateQuery, relativeTime } from './publish-queries';
+import { PageSeoSheet } from './site/PageSeoSheet';
 
 const saveLabels = {
   saved: 'Saved',
@@ -70,6 +72,7 @@ export function TopBar({
   } = useEditor();
   const [publishOpen, setPublishOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [seoOpen, setSeoOpen] = useState(false);
   const { data: live } = useQuery(publishStateQuery(state.document.id));
   const liveDiffers = live?.publishedDocument
     ? JSON.stringify(live.publishedDocument) !== JSON.stringify(state.document)
@@ -174,6 +177,19 @@ export function TopBar({
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setSeoOpen(true)}
+              aria-label="Page settings"
+            >
+              <Settings2 />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Page settings & SEO</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setHistoryOpen(true)}
               aria-label="Version history"
             >
@@ -223,6 +239,7 @@ export function TopBar({
         </Tooltip>
         <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} />
+        <PageSeoSheet open={seoOpen} onOpenChange={setSeoOpen} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Account">

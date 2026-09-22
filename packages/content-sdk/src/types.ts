@@ -1,4 +1,9 @@
-import { pageDocumentSchema, pageSummarySchema, themeTokensSchema } from '@siteos/schemas';
+import {
+  pageDocumentSchema,
+  pageSummarySchema,
+  siteSettingsSchema,
+  themeTokensSchema,
+} from '@siteos/schemas';
 import { z } from 'zod';
 
 /** Published-only shapes. Nothing here can carry draft data. */
@@ -7,6 +12,7 @@ export const publishedSiteSchema = z.object({
   name: z.string(),
   slug: z.string(),
   theme: themeTokensSchema,
+  settings: siteSettingsSchema.default(siteSettingsSchema.parse({})),
   pages: z.array(pageSummarySchema),
 });
 export type PublishedSite = z.infer<typeof publishedSiteSchema>;
@@ -24,6 +30,8 @@ export type PublishedPage = z.infer<typeof publishedPageSchema>;
 export interface ContentSource {
   getSite(siteSlug: string): Promise<PublishedSite | null>;
   getPage(siteSlug: string, slug: string): Promise<PublishedPage | null>;
+  /** Redirect target for a path that has no page, or null. */
+  getRedirect(siteSlug: string, path: string): Promise<string | null>;
 }
 
 export const siteSlugSchema = z

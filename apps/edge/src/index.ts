@@ -277,6 +277,117 @@ app.delete('/uploads/objects', async (c) => {
   return c.json({ deleted: keys.length });
 });
 
+// ---------------------------------------------------------------------------
+// Public form submissions (from the live site). Validation happens in submit_form() under anon.
+// ---------------------------------------------------------------------------
+const formCors = cors({
+  origin: '*',
+  allowMethods: ['POST', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Accept'],
+  maxAge: 600,
+});
+app.options('/forms/:formId', (c, next) => formCors(c, next));
+
+// ponytail: per-isolate in-memory rate limit (best effort on Workers); move to KV/Durable Objects if abuse appears.
+const buckets = new Map<string, { n: number; reset: number }>();
+function rateLimited(key: string, limit = 10, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const b = buckets.get(key);
+  if (!b || b.reset < now) {
+    buckets.set(key, { n: 1, reset: now + windowMs });
+    return false;
+  }
+  b.n += 1;
+  return b.n > limit;
+}
+
+app.post('/forms/:formId', formCors, async (c) => {
+  const formId = c.req.param('formId');
+  if (!uuid.safeParse(formId).success) return c.json({ ok: false, error: 'Unknown form.' }, 404);
+  const wantsJson = (c.req.header('Accept') ?? '').includes('application/json');
+  const fail = (message: string, status: 400 | 404 | 413 | 422 | 429 | 500) => {
+    if (wantsJson) return c.json({ ok: false, error: message }, status);
+    const back = c.req.header('Referer') ?? '/';
+    return c.redirect(
+      `${back.split('#')[0]}${back.includes('?') ? '&' : '?'}error=${encodeURIComponent(message)}`,
+      303,
+    );
+  };
+  const ip = c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? 'local';
+  if (rateLimited(`${ip}:${formId}`))
+    return fail('Too many submissions. Please wait a minute and try again.', 429);
+  if (Number(c.req.header('Content-Length') ?? 0) > 64 * 1024)
+    return fail('Submission too large.', 413);
+
+  let raw: Record<string, unknown>;
+  try {
+    const ct = c.req.header('Content-Type') ?? '';
+    raw = ct.includes('application/json')
+      ? ((await c.req.json()) as Record<string, unknown>)
+      : Object.fromEntries((await c.req.formData()).entries());
+  } catch {
+    return fail('Could not read the submission.', 400);
+  }
+  if (typeof raw !== 'object' || raw === null || Object.keys(raw).length > 40)
+    return fail('Invalid submission.', 400);
+  // Bot checks: honeypot must be empty; the form must have been open for at least 3 seconds and less than a day.
+  if (typeof raw.website === 'string' && raw.website.trim() !== '')
+    return fail('Submission rejected.', 422);
+  const ts = Number(raw._ts);
+  if (!Number.isFinite(ts) || Date.now() - ts < 3000 || Date.now() - ts > 86_400_000)
+    return fail('Please try sending the form again.', 422);
+  const { website: _hp, _ts: _t, _page, ...data } = raw;
+  for (const [k, v] of Object.entries(data)) if (v === 'true' || v === 'on') data[k] = true;
+  for (const k of Object.keys(data)) if (data[k] === 'false' || data[k] === '') delete data[k];
+
+  const res = await fetch(`${c.env.SUPABASE_URL}/rest/v1/rpc/submit_form`, {
+    method: 'POST',
+    headers: {
+      apikey: c.env.SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${c.env.SUPABASE_PUBLISHABLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      p_form: formId,
+      p_data: data,
+      p_meta: {
+        page: typeof _page === 'string' ? _page : undefined,
+        referer: c.req.header('Referer'),
+        userAgent: c.req.header('User-Agent'),
+      },
+    }),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { message?: string; details?: string };
+    const msg = err.message ?? '';
+    const human = msg.includes('missing_required')
+      ? `Please fill in the required field “${err.details}”.`
+      : msg.includes('invalid_email')
+        ? 'Please enter a valid email address.'
+        : msg.includes('too_long')
+          ? 'One of the answers is too long.'
+          : msg.includes('form not found')
+            ? 'Unknown form.'
+            : 'We could not save your message. Please try again.';
+    return fail(human, msg.includes('form not found') ? 404 : res.status === 400 ? 422 : 500);
+  }
+  const formDef = await fetch(`${c.env.SUPABASE_URL}/rest/v1/rpc/get_public_form`, {
+    method: 'POST',
+    headers: {
+      apikey: c.env.SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${c.env.SUPABASE_PUBLISHABLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ p_form: formId }),
+  })
+    .then((r) => (r.ok ? (r.json() as Promise<{ settings?: { successMessage?: string } }>) : null))
+    .catch(() => null);
+  const message = formDef?.settings?.successMessage ?? 'Thanks, we received your message.';
+  if (wantsJson) return c.json({ ok: true, message });
+  const back = (c.req.header('Referer') ?? '/').split('#')[0] as string;
+  return c.redirect(`${back}${back.includes('?') ? '&' : '?'}submitted=${formId}#${formId}`, 303);
+});
+
 app.get('/health', (c) => c.json({ ok: true }));
 
 /** Magic-byte check so a renamed .exe cannot be stored as an image. */

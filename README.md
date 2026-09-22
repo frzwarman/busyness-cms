@@ -9,7 +9,7 @@ lightweight **Astro** site. Users edit business intent (variant, alignment, them
 BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
 ```
 
-> **Status:** Milestones 1–6 are complete: architecture foundation, database + auth, publishing, a 23-type section library, the asset system, and the content library with global sections. See
+> **Status:** Milestones 1–7 are complete: architecture foundation, database + auth, publishing, a 24-type section library, the asset system, the content library with global sections, and SEO + forms. See
 > [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
 
 ## What works today
@@ -25,6 +25,12 @@ BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS
 - Content library: eight predefined collections (testimonials, services, team, locations, FAQs, logos, stats, projects)
   edited once and shown by any list section via `source` (all / by tag / picked). Global sections (edit once, appears on
   every page, detach to localize). Published versions inline both, so they stay self-contained.
+- SEO: per-page and site-wide metadata with search/social previews, canonical, Open Graph, Twitter card, favicon,
+  JSON-LD from configured facts only, per-site sitemap.xml and robots.txt, 301 redirects.
+- Forms: template-based builder, Form section, protected public endpoint on the edge worker (rate limit, honeypot,
+  timing, server-side validation), submissions inbox with read state, filters and CSV export. Works without JavaScript.
+- Public design system: seven self-hosted variable fonts (SIL OFL), fluid type scale, tinted shadows, one page-load
+  reveal, seven opinionated theme presets.
 - Constrained rich text (Tiptap in the Studio, a whitelisted ProseMirror JSON subset on disk, HTML generated from the
   tree — never sanitized HTML). Repeatable lists with nested lists, a curated inline-SVG icon set, privacy-enhanced
   video embeds, no-JavaScript mobile menu and FAQ accordion.
@@ -82,7 +88,7 @@ packages/
   design-system/   theme presets · token → CSS variables · base.css · contrast math
   editor-core/     framework-free editor reducer (add/move/duplicate/hide/update, coalesced undo/redo)
   content-sdk/     (M3) typed client for the published-content API
-docs/              architecture, section authoring, migrations, design system, publishing, assets, content & globals, security, deployment, business packs
+docs/              architecture, section authoring, migrations, design system, publishing, assets, content & globals, SEO & forms, security, deployment, business packs
 e2e/               Playwright flows
 ```
 
@@ -218,7 +224,7 @@ See [docs/publishing.md](docs/publishing.md) and [docs/security.md](docs/securit
 
 ## SEO, accessibility, performance
 
-- Per-page title/description/OG in the document; sitemap, robots, canonical and JSON-LD arrive in M7.
+- Per-page and per-site SEO, sitemap, robots, canonical and JSON-LD: see docs/seo-and-forms.md.
 - Renderer output is semantic HTML with one `h1` per page, skip link, focus styles, `alt` or
   `decorative` on every image, lazy loading below the fold and `fetchpriority=high` for the first section's media.
 - Public pages ship **zero client JavaScript** in Milestone 1; React islands are reserved for genuinely interactive sections.
@@ -252,13 +258,15 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 | 4 Section library | 23 sections on the registry | **done** |
 | 5 Assets | ticketed R2 uploads, Web Worker resize, focal point, usage graph, dedupe | **done** |
 | 6 Content + globals | reusable collections, global sections, detach | **done** |
-| 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox | next |
-| 8 Business packs | packs, page recipes, presets, guided creation | planned |
+| 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox, public design pass | **done** |
+| 8 Business packs | packs, page recipes, presets, guided creation | next |
 | 9 Hardening | a11y, performance, caching, mobile editor, health checks | planned |
 
 ## Third-party assets
 
 Demo imagery under `apps/renderer/public/demo/` consists of original SVG illustrations created for
 this repository (no third-party licenses). The Studio self-hosts the Geist variable font
-(`@fontsource-variable/geist`, SIL OFL 1.1). Public sites use system font stacks only.
+(`@fontsource-variable/geist`, SIL OFL 1.1). Public sites self-host Inter, Manrope, DM Sans, Space Grotesk, Fraunces,
+Playfair Display and Lora (all SIL OFL 1.1, via `@fontsource-variable/*`, copied to `apps/renderer/public/fonts` by
+`scripts/sync-fonts.mjs`; see `public/fonts/LICENSES.md`). No fonts or scripts are loaded from third parties.
 # busyness-cms

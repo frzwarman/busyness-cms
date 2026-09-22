@@ -1,12 +1,28 @@
 ---
 import { themeToCss } from '@siteos/design-system';
 import '@siteos/design-system/base.css';
-import type { PageDocument, ThemeTokens } from '@siteos/schemas';
+import { absolute, buildJsonLd, canonicalUrl, defaultSiteSettings, type PageDocument, type SiteSettings, type ThemeTokens } from '@siteos/schemas';
+import { fontStylesheets } from '../lib/fonts.ts';
 
-interface Props { page: PageDocument; theme: ThemeTokens; siteName: string; noindex?: boolean }
-const { page, theme, siteName, noindex = false } = Astro.props;
-const title = page.seo.title ?? `${page.title} — ${siteName}`;
-const description = page.seo.description;
+interface Props {
+  page: PageDocument;
+  theme: ThemeTokens;
+  siteName: string;
+  settings?: SiteSettings;
+  /** Path prefix of this site on the current host, e.g. /s/kopi-sudut (empty for root/subdomain sites). */
+  sitePrefix?: string;
+  noindex?: boolean;
+}
+const { page, theme, siteName, settings = defaultSiteSettings, sitePrefix = '', noindex = false } = Astro.props;
+const title = page.seo.title ?? (page.slug === '/' && settings.tagline ? `${siteName} — ${settings.tagline}` : `${page.title} — ${siteName}`);
+const description = page.seo.description ?? settings.description ?? undefined;
+const canonical = canonicalUrl(page, settings, Astro.request.url, sitePrefix);
+const siteUrl = canonical.replace(new RegExp(`${page.slug === '/' ? '/?' : page.slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), '') || canonical;
+const ogImage = page.seo.ogImage?.src ?? settings.ogImage?.src;
+const ogImageUrl = ogImage ? absolute(ogImage, canonical) : undefined;
+const jsonLd = noindex ? null : buildJsonLd({ site: { name: siteName, settings }, page, url: canonical, siteUrl });
+const fonts = fontStylesheets(theme);
+const favicon = settings.favicon?.src;
 ---
 <!doctype html>
 <html lang="en">
@@ -15,10 +31,22 @@ const description = page.seo.description;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical} />
     {(noindex || page.seo.noindex) && <meta name="robots" content="noindex, nofollow" />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={page.seo.ogTitle ?? title} />
     {(page.seo.ogDescription ?? description) && <meta property="og:description" content={page.seo.ogDescription ?? description} />}
+    <meta property="og:url" content={canonical} />
+    {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+    {page.seo.ogImage?.alt && <meta property="og:image:alt" content={page.seo.ogImage.alt} />}
+    <meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
+    {settings.twitterHandle && <meta name="twitter:site" content={settings.twitterHandle.startsWith('@') ? settings.twitterHandle : `@${settings.twitterHandle}`} />}
+    {favicon && <link rel="icon" href={favicon} />}
+    <meta name="theme-color" content={theme.colors.background} />
+    {fonts.map((href) => <link rel="stylesheet" href={href} />)}
     <style set:html={themeToCss(theme)} />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body>
     <a class="sr-only" href="#main">Skip to content</a>

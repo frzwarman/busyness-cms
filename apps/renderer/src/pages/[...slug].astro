@@ -6,7 +6,12 @@ const siteSlug = siteFromRequest(Astro.request);
 if (!siteSlug) {
   return new Response('No site is configured for this host. Set DEFAULT_SITE_SLUG or use /s/<site-slug>/.', { status: 404, headers: { 'Content-Type': 'text/plain' } });
 }
-const published = await content().getPage(siteSlug, normalizeSlug(Astro.params.slug));
-if (!published) return new Response('Not found', { status: 404 });
+const slug = normalizeSlug(Astro.params.slug);
+const published = await content().getPage(siteSlug, slug);
+if (!published) {
+  const to = await content().getRedirect(siteSlug, slug);
+  if (to) return Astro.redirect(to, 301);
+  return new Response('Not found', { status: 404 });
+}
 ---
 <PublicPage published={published} />

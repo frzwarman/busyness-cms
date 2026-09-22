@@ -7,13 +7,17 @@
 html {
   font-size: var(--font-size-base);
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 body {
   margin: 0;
   font-family: var(--font-body);
   color: var(--color-text);
   background: var(--color-background);
-  line-height: 1.6;
+  line-height: var(--body-leading, 1.6);
+  font-feature-settings: "kern", "liga";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 h1,
 h2,
@@ -21,13 +25,19 @@ h3,
 h4 {
   font-family: var(--font-heading);
   font-weight: var(--heading-weight);
-  line-height: 1.15;
+  line-height: 1.08;
   margin: 0;
   text-wrap: balance;
+  letter-spacing: var(--display-tracking, -0.02em);
+}
+h3,
+h4 {
+  line-height: 1.2;
   letter-spacing: -0.01em;
 }
 p {
   margin: 0;
+  max-width: var(--measure, 62ch);
 }
 img,
 video {
@@ -38,9 +48,13 @@ video {
 a {
   color: inherit;
 }
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
 :focus-visible {
   outline: 3px solid var(--color-accent);
   outline-offset: 3px;
+  border-radius: 2px;
 }
 .sr-only {
   position: absolute;
@@ -53,47 +67,45 @@ a {
   border: 0;
 }
 
-/* Type scale: --heading-scale drives ratios so one token changes the whole rhythm */
+/* Fluid type scale. --heading-scale (1.2 / 1.25 / 1.333) sets the ratio; sizes flex with the viewport. */
 .t-display {
-  font-size: calc(
-    1rem *
-    var(--heading-scale) *
-    var(--heading-scale) *
-    var(--heading-scale) *
-    var(--heading-scale)
+  font-size: clamp(
+    2.75rem,
+    calc(1.6rem + 4.2vw),
+    calc(
+      1rem *
+      var(--heading-scale) *
+      var(--heading-scale) *
+      var(--heading-scale) *
+      var(--heading-scale) *
+      1.55
+    )
   );
+  line-height: 1.02;
 }
 .t-h1 {
-  font-size: calc(1rem * var(--heading-scale) * var(--heading-scale) * var(--heading-scale));
+  font-size: clamp(
+    2.25rem,
+    calc(1.4rem + 3vw),
+    calc(1rem * var(--heading-scale) * var(--heading-scale) * var(--heading-scale) * 1.4)
+  );
+  line-height: 1.06;
 }
 .t-h2 {
-  font-size: calc(1rem * var(--heading-scale) * var(--heading-scale));
+  font-size: clamp(
+    1.75rem,
+    calc(1.2rem + 1.6vw),
+    calc(1rem * var(--heading-scale) * var(--heading-scale) * 1.25)
+  );
+  line-height: 1.12;
 }
 .t-h3 {
-  font-size: calc(1rem * var(--heading-scale));
+  font-size: clamp(1.125rem, calc(1rem + 0.4vw), calc(1rem * var(--heading-scale) * 1.05));
+  line-height: 1.3;
 }
 .t-lead {
-  font-size: 1.125rem;
-}
-@media (min-width: 768px) {
-  .t-display {
-    font-size: calc(
-      1.25rem *
-      var(--heading-scale) *
-      var(--heading-scale) *
-      var(--heading-scale) *
-      var(--heading-scale)
-    );
-  }
-  .t-h1 {
-    font-size: calc(1.25rem * var(--heading-scale) * var(--heading-scale) * var(--heading-scale));
-  }
-  .t-h2 {
-    font-size: calc(1.125rem * var(--heading-scale) * var(--heading-scale));
-  }
-  .t-lead {
-    font-size: 1.25rem;
-  }
+  font-size: clamp(1.0625rem, calc(1rem + 0.35vw), 1.25rem);
+  line-height: 1.55;
 }
 
 /* Section surfaces: a section picks a theme, the tokens do the rest */
@@ -112,20 +124,20 @@ a {
 .section.theme-dark {
   --section-bg: var(--color-text);
   --section-fg: var(--color-background);
-  --section-muted: color-mix(in srgb, var(--color-background) 70%, transparent);
-  --section-border: color-mix(in srgb, var(--color-background) 20%, transparent);
+  --section-muted: color-mix(in srgb, var(--color-background) 72%, transparent);
+  --section-border: color-mix(in srgb, var(--color-background) 18%, transparent);
 }
 .section.theme-brand {
   --section-bg: var(--color-primary);
   --section-fg: var(--color-primary-contrast);
-  --section-muted: color-mix(in srgb, var(--color-primary-contrast) 75%, transparent);
-  --section-border: color-mix(in srgb, var(--color-primary-contrast) 25%, transparent);
+  --section-muted: color-mix(in srgb, var(--color-primary-contrast) 78%, transparent);
+  --section-border: color-mix(in srgb, var(--color-primary-contrast) 22%, transparent);
 }
 .section.spacing-none {
   padding-block: 0;
 }
 .section.spacing-compact {
-  padding-block: calc(var(--section-spacing) * 0.5);
+  padding-block: calc(var(--section-spacing) * 0.55);
 }
 .section.spacing-standard {
   padding-block: var(--section-spacing);
@@ -133,8 +145,13 @@ a {
 .section.spacing-large {
   padding-block: calc(var(--section-spacing) * 1.5);
 }
+/* Adjacent same-surface sections read as one canvas; different surfaces get a hairline seam. */
+.section.theme-light + .section.theme-light,
+.section.theme-surface + .section.theme-surface {
+  padding-top: calc(var(--section-spacing) * 0.35);
+}
 .container {
-  width: min(100% - 2.5rem, var(--container-width));
+  width: min(100% - clamp(2rem, 6vw, 4rem), var(--container-width));
   margin-inline: auto;
 }
 .muted {
@@ -147,42 +164,57 @@ a {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 2.75rem;
-  padding: 0.625rem 1.25rem;
+  min-height: 2.875rem;
+  padding: 0.7rem 1.35rem;
   font: inherit;
   font-weight: 600;
+  font-size: 0.96rem;
+  letter-spacing: 0.005em;
   text-decoration: none;
   border-radius: var(--radius-button);
-  border: 2px solid transparent;
+  border: 1.5px solid transparent;
   cursor: pointer;
   transition:
-    background-color 0.15s,
-    color 0.15s,
-    border-color 0.15s;
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+.btn:active {
+  transform: translateY(1px);
 }
 .btn-filled {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
   border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 .btn-filled:hover {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 .btn-outline {
   background: transparent;
   color: var(--section-fg);
-  border-color: currentColor;
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
 }
 .btn-outline:hover {
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 7%, transparent);
 }
 .btn-text {
   background: transparent;
   color: var(--section-fg);
-  padding-inline: 0.5rem;
+  padding-inline: 0.35rem;
   text-decoration: underline;
-  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.3em;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+.btn-text:hover {
+  text-decoration-color: currentColor;
 }
 .theme-brand .btn-filled {
   background: var(--color-primary-contrast);
@@ -190,43 +222,104 @@ a {
   border-color: var(--color-primary-contrast);
 }
 .theme-brand .btn-filled:hover {
-  background: color-mix(in srgb, var(--color-primary-contrast) 88%, var(--color-primary));
+  background: color-mix(in srgb, var(--color-primary-contrast) 90%, var(--color-primary));
+}
+.theme-dark .btn-filled {
+  background: var(--color-background);
+  color: var(--color-text);
+  border-color: var(--color-background);
 }
 
+/* Cards: hairline + tinted shadow; hierarchy comes from radius tokens, not decoration */
 .card {
   background: var(--color-surface);
   border: 1px solid var(--section-border);
   border-radius: var(--radius-lg);
   padding: var(--card-spacing);
+  box-shadow: var(--shadow-sm);
+}
+.theme-surface .card {
+  background: var(--color-background);
 }
 .theme-dark .card,
 .theme-brand .card {
-  background: color-mix(in srgb, var(--section-fg) 8%, transparent);
+  background: color-mix(in srgb, var(--section-fg) 7%, transparent);
+  border-color: var(--section-border);
+  box-shadow: none;
 }
 .eyebrow {
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--color-accent);
+  letter-spacing: 0;
+  text-transform: none;
+  max-width: none;
 }
 .theme-brand .eyebrow {
   color: var(--section-fg);
   opacity: 0.85;
 }
+.theme-dark .eyebrow {
+  color: var(--color-accent);
+}
 .media {
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--color-surface);
+  box-shadow: var(--shadow-md);
 }
 .media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
+/* One orchestrated moment: the first section's copy settles into place on load. */
+@media (prefers-reduced-motion: no-preference) {
+  main > .section:first-child .copy > *,
+  main > .section:first-child .intro > * {
+    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  main > .section:first-child .copy > *:nth-child(2),
+  main > .section:first-child .intro > *:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+  main > .section:first-child .copy > *:nth-child(3),
+  main > .section:first-child .intro > *:nth-child(3) {
+    animation-delay: 0.16s;
+  }
+  main > .section:first-child .copy > *:nth-child(4) {
+    animation-delay: 0.24s;
+  }
+  main > .section:first-child .media {
+    animation: settle 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: 0.1s;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
     animation: none !important;
+    scroll-behavior: auto !important;
   }
 }

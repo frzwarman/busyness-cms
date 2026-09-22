@@ -39,7 +39,7 @@ test('assets: upload, dedupe, use in hero with srcset, usage protection, delete'
   await scratch.close();
   const png = Buffer.from(dataUrl.split(',')[1] as string, 'base64');
 
-  await page.getByRole('tab', { name: 'Assets' }).click();
+  await page.getByRole('button', { name: 'Assets', exact: true }).click();
   const browser = page.getByRole('region', { name: 'Asset browser' });
   const filename = `e2e-${stamp}.png`;
   await browser
@@ -63,7 +63,7 @@ test('assets: upload, dedupe, use in hero with srcset, usage protection, delete'
   await browser.getByRole('button', { name: 'Dismiss' }).click();
 
   // Use it in the hero via the image control → renderer emits srcset with the variants.
-  await page.getByRole('tab', { name: 'Sections' }).click();
+  await page.getByRole('button', { name: 'Sections', exact: true }).click();
   await preview.locator('[data-section-type="hero"] h1').click();
   await page.getByRole('button', { name: /Replace from library|Choose image/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Choose an image' });
@@ -82,7 +82,7 @@ test('assets: upload, dedupe, use in hero with srcset, usage protection, delete'
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
 
   // Usage tracking: the browser now shows the asset as used, and deletion is refused.
-  await page.getByRole('tab', { name: 'Assets' }).click();
+  await page.getByRole('button', { name: 'Assets', exact: true }).click();
   await expect(browser.getByRole('button', { name: new RegExp(filename) })).toContainText(
     'Used in 1',
     { timeout: 15_000 },
@@ -93,10 +93,10 @@ test('assets: upload, dedupe, use in hero with srcset, usage protection, delete'
   await details.getByRole('button', { name: 'Cancel' }).click();
 
   // Remove it from the hero, then delete for real.
-  await page.getByRole('tab', { name: 'Sections' }).click();
+  await page.getByRole('button', { name: 'Sections', exact: true }).click();
   await page.getByRole('button', { name: 'Remove image' }).click();
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('tab', { name: 'Assets' }).click();
+  await page.getByRole('button', { name: 'Assets', exact: true }).click();
   await expect(browser.getByRole('button', { name: new RegExp(filename) })).not.toContainText(
     'Used in',
     { timeout: 15_000 },

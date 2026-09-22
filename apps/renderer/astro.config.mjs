@@ -5,6 +5,9 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   output: 'server',
+  // Class-based scoping is appended to `class` passed into child components, so a section's variant rules
+  // (.v-split …) can target the <section> that SectionFrame renders. Attribute scoping (the default) cannot.
+  scopedStyleStrategy: 'class',
   adapter: cloudflare(),
   // CSRF: Astro rejects cross-origin POSTs by default; the preview render route relies on this.
   security: { checkOrigin: true },

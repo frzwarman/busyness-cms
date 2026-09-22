@@ -1,5 +1,6 @@
 import AnnouncementBar from '@siteos/sections/announcement-bar/AnnouncementBar.astro';
 import BusinessHours from '@siteos/sections/business-hours/BusinessHours.astro';
+import ContactForm from '@siteos/sections/contact-form/ContactForm.astro';
 import Cta from '@siteos/sections/cta/Cta.astro';
 import Faq from '@siteos/sections/faq/Faq.astro';
 import FeatureGrid from '@siteos/sections/feature-grid/FeatureGrid.astro';
@@ -42,6 +43,7 @@ export const sectionComponents = {
   gallery: Gallery,
   video: Video,
   cta: Cta,
+  'contact-form': ContactForm,
   faq: Faq,
   'business-hours': BusinessHours,
   locations: Locations,

@@ -32,5 +32,11 @@ export function createSupabaseContentSource(url: string, publishableKey: string)
       if (data === null) return null;
       return publishedPageSchema.parse(data);
     },
+    async getRedirect(siteSlug, path) {
+      if (!siteSlugSchema.safeParse(siteSlug).success) return null;
+      const { data, error } = await db.rpc('get_redirect', { p_site_slug: siteSlug, p_path: path });
+      if (error) return null;
+      return typeof data === 'string' ? data : null;
+    },
   };
 }

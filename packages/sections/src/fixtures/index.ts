@@ -3,22 +3,22 @@ import type { PageDocument, PageSummary, ThemeTokens } from '@siteos/schemas';
 /** Demo site: "Kopi Sudut", a specialty coffee bar. Coherent placeholder content, no lorem ipsum. */
 export const demoTheme: ThemeTokens = {
   colors: {
-    primary: '#7c2d12',
-    secondary: '#292524',
-    accent: '#b45309',
-    background: '#fdfaf5',
-    surface: '#f3ede3',
-    text: '#1c1917',
-    muted: '#78716c',
+    primary: '#173f35',
+    secondary: '#2d2a26',
+    accent: '#8a2432',
+    background: '#f8f7f2',
+    surface: '#ecebe2',
+    text: '#1b1d1a',
+    muted: '#5f655f',
   },
   typography: {
-    headingFont: 'system-serif',
-    bodyFont: 'humanist',
+    headingFont: 'fraunces',
+    bodyFont: 'manrope',
     baseSize: 'md',
     headingScale: 'dramatic',
     headingWeight: 'medium',
   },
-  shape: { radius: 'none', buttonStyle: 'outline' },
+  shape: { radius: 'sm', buttonStyle: 'filled' },
   layout: { contentWidth: 'narrow', sectionSpacing: 'airy', cardSpacing: 'standard' },
 };
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { imageRefSchema } from './image.ts';
 
 /** Persisted envelope for one section. `props` is validated by the section's own schema. */
 export const sectionInstanceSchema = z.object({
@@ -22,7 +23,7 @@ export const pageSeoSchema = z.object({
   canonical: z.url({ protocol: /^https?$/ }).optional(),
   ogTitle: z.string().max(95).optional(),
   ogDescription: z.string().max(200).optional(),
-  ogImageAssetId: z.string().optional(),
+  ogImage: imageRefSchema.nullable().optional(),
   noindex: z.boolean().default(false),
 });
 
@@ -37,5 +38,10 @@ export const pageDocumentSchema = z.object({
 export type PageDocument = z.infer<typeof pageDocumentSchema>;
 
 /** Minimal page directory used by link resolution and navigation. */
-export const pageSummarySchema = z.object({ id: z.string(), slug: slugSchema, title: z.string() });
+export const pageSummarySchema = z.object({
+  id: z.string(),
+  slug: slugSchema,
+  title: z.string(),
+  updatedAt: z.string().nullable().optional(),
+});
 export type PageSummary = z.infer<typeof pageSummarySchema>;

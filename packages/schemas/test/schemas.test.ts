@@ -10,6 +10,7 @@ import {
   sectionInstanceSchema,
   slugSchema,
   studioToPreviewMessageSchema,
+  themeTokensSchema,
 } from '../src/index.ts';
 
 describe('ids', () => {
@@ -67,6 +68,32 @@ describe('page document', () => {
     });
     expect(doc.seo.noindex).toBe(false);
     expect(doc.sections[0]?.hidden).toBe(false);
+  });
+});
+
+describe('theme tokens', () => {
+  it('migrates legacy font ids on read', () => {
+    const t = themeTokensSchema.parse({
+      colors: {
+        primary: '#111111',
+        secondary: '#222222',
+        accent: '#333333',
+        background: '#ffffff',
+        surface: '#eeeeee',
+        text: '#111111',
+        muted: '#666666',
+      },
+      typography: {
+        headingFont: 'geometric',
+        bodyFont: 'humanist',
+        baseSize: 'md',
+        headingScale: 'standard',
+        headingWeight: 'medium',
+      },
+      shape: { radius: 'sm', buttonStyle: 'filled' },
+      layout: { contentWidth: 'standard', sectionSpacing: 'standard', cardSpacing: 'standard' },
+    });
+    expect(t.typography).toMatchObject({ headingFont: 'space-grotesk', bodyFont: 'manrope' });
   });
 });
 

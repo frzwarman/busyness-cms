@@ -1,3 +1,4 @@
+import { defaultSiteSettings } from '@siteos/schemas';
 import { registry } from '@siteos/sections';
 import { demoHomePage, demoPages, demoTheme } from '@siteos/sections/fixtures';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ function wrap(children: ReactNode) {
       <EditorProvider
         page={structuredClone(demoHomePage)}
         theme={demoTheme}
+        settings={defaultSiteSettings}
         pages={demoPages}
         siteName="Test"
         siteId="site_test"
@@ -22,6 +24,7 @@ function wrap(children: ReactNode) {
           initialRevision: 1,
           savePage: async (_d, rev) => rev + 1,
           saveTheme: async () => {},
+          saveSettings: async () => {},
         }}
       >
         {children}

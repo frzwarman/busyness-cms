@@ -1,4 +1,12 @@
-import { getDraft, getSite, listPages, listSites, saveDraft, updateTheme } from '@siteos/db';
+import {
+  getDraft,
+  getSite,
+  listPages,
+  listSites,
+  saveDraft,
+  updateSiteSettings,
+  updateTheme,
+} from '@siteos/db';
 import { registry } from '@siteos/sections';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import {
@@ -105,6 +113,7 @@ function EditorRoute() {
       initialRevision: draft?.revision ?? 1,
       savePage: (doc, rev) => saveDraft(supabase, pageId, rev, doc),
       saveTheme: (theme) => updateTheme(supabase, siteId, theme),
+      saveSettings: (settings) => updateSiteSettings(supabase, siteId, settings),
     }),
     [pageId, siteId, draft?.revision],
   );
@@ -131,6 +140,7 @@ function EditorRoute() {
       key={`${pageId}:${draft.revision}`}
       page={document}
       theme={site.theme}
+      settings={site.settings}
       pages={pages}
       siteName={site.name}
       siteId={siteId}

@@ -14,6 +14,7 @@ export { embedFor } from './video/schema.ts';
 
 import { announcementBarDefinition } from './announcement-bar/definition.ts';
 import { businessHoursDefinition } from './business-hours/definition.ts';
+import { contactFormDefinition } from './contact-form/definition.ts';
 import { ctaDefinition } from './cta/definition.ts';
 import { faqDefinition } from './faq/definition.ts';
 import { featureGridDefinition } from './feature-grid/definition.ts';
@@ -54,6 +55,7 @@ export const registry = new SectionRegistry([
   galleryDefinition,
   videoDefinition,
   ctaDefinition,
+  contactFormDefinition,
   faqDefinition,
   businessHoursDefinition,
   locationsDefinition,

@@ -17,6 +17,7 @@ export function createHttpContentSource(
       get(`/api/content/sites/${encodeURIComponent(siteSlug)}`, (v) =>
         publishedSiteSchema.parse(v),
       ),
+    getRedirect: async () => null,
     getPage: (siteSlug, slug) =>
       get(
         `/api/content/sites/${encodeURIComponent(siteSlug)}/pages${slug === '/' ? '/' : slug}`,

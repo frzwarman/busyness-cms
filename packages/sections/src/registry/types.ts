@@ -55,6 +55,7 @@ export type InspectorControl =
   | { control: 'icon' }
   | { control: 'richtext' }
   | { control: 'content-source' }
+  | { control: 'form-picker' }
   | {
       control: 'list';
       /** Singular label for items, e.g. "Feature". */

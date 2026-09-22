@@ -29,15 +29,24 @@ spacing classes, `.container`, `.btn .btn-filled|outline|text`, `.card`, `.eyebr
 
 ## Fonts
 
-Only system stacks ship today (`system-sans`, `system-serif`, `system-rounded`, `system-mono`, `humanist`,
-`geometric`): zero network cost and no licensing questions. Self-hosted families with known licenses can be
-added to `fonts.ts` later with explicit weight limits and preload only for critical files.
+Seven self-hosted variable families (SIL OFL 1.1): Inter, Manrope, DM Sans, Space Grotesk, Fraunces, Playfair Display,
+Lora, plus four system stacks. `apps/renderer/scripts/sync-fonts.mjs` copies each family's CSS and woff2 files from
+`@fontsource-variable/*` into `public/fonts`; a page links only the one or two families its theme uses, and browsers
+download only the unicode subsets they need. Serif body faces get a longer measure and more leading
+(`--measure`, `--body-leading`); display faces track tighter (`--display-tracking`).
 
 ## Presets
 
-Minimal, Editorial, Luxury, Modern, Corporate, Playful. A preset is a full token set plus optional
-`sectionDefaults` (preferred variants). Applying a preset only replaces tokens; page content is untouched.
-Every preset is tested to pass AA contrast for body text.
+Minimal (Inter, ink + cobalt), Editorial (Fraunces + Manrope, paper/green/oxblood), Luxury (Playfair on near-black,
+champagne), Modern (Space Grotesk, electric blue), Corporate (Manrope, navy + amber), Organic (Lora + DM Sans, clay and
+moss), Playful (DM Sans, coral + violet + yellow). Each is a specific pairing and palette, not a recolor. A preset is a
+full token set plus optional `sectionDefaults`; applying one only replaces tokens. Every preset is tested to pass AA
+contrast for body text.
+
+## Motion
+
+One orchestrated moment: the first section's copy and media settle into place on load (`rise`/`settle`, 0.7–0.9 s,
+respecting `prefers-reduced-motion`). No per-section reveals, no hover lifts on cards.
 
 ## Contrast
 

@@ -2,7 +2,13 @@
 import PublicPage from '../../../components/PublicPage.astro';
 import { content, normalizeSlug } from '../../../lib/content.ts';
 
-const published = await content().getPage(Astro.params.site ?? '', normalizeSlug(Astro.params.slug));
-if (!published) return new Response('Not found', { status: 404 });
+const site = Astro.params.site ?? '';
+const slug = normalizeSlug(Astro.params.slug);
+const published = await content().getPage(site, slug);
+if (!published) {
+  const to = await content().getRedirect(site, slug);
+  if (to) return Astro.redirect(to.startsWith('/') ? `/s/${site}${to}` : to, 301);
+  return new Response('Not found', { status: 404 });
+}
 ---
-<PublicPage published={published} />
+<PublicPage published={published} sitePrefix={`/s/${site}`} />

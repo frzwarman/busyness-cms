@@ -1,3 +1,4 @@
+/// <reference types="astro/client" />
 interface ImportMetaEnv {
   readonly PUBLIC_STUDIO_ORIGIN?: string;
   readonly SUPABASE_URL?: string;
@@ -6,4 +7,6 @@ interface ImportMetaEnv {
   readonly DEFAULT_SITE_SLUG?: string;
   /** e.g. sites.example.com → https://kopi-sudut.sites.example.com serves site "kopi-sudut". */
   readonly PUBLIC_PLATFORM_DOMAIN?: string;
+  /** Edge worker origin that receives form submissions. */
+  readonly PUBLIC_EDGE_ORIGIN?: string;
 }

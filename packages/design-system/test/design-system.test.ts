@@ -49,7 +49,9 @@ describe('tokens', () => {
     ]) {
       expect(vars).toHaveProperty(k);
     }
-    expect(themeToCss(defaultTheme)).toMatch(/^:root\{--color-primary:#111111;/);
+    expect(themeToCss(defaultTheme)).toMatch(
+      new RegExp(`^:root\\{--color-primary:${defaultTheme.colors.primary};`),
+    );
   });
   it('warns on low-contrast combinations without mutating input', () => {
     const bad = structuredClone(defaultTheme);

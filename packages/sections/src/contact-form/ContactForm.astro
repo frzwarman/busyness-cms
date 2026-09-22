@@ -1,0 +1,130 @@
+---
+/**
+ * Native HTML form posting to the edge worker. Works with no JavaScript (the worker redirects back with
+ * ?submitted=<form id>); a few lines of inline script upgrade it to an in-place confirmation.
+ */
+import SectionFrame from '../primitives/SectionFrame.astro';
+import SectionIntro from '../primitives/SectionIntro.astro';
+import type { SectionRenderProps } from '../render-context.ts';
+import type { ContactFormProps } from './schema.ts';
+
+type Props = SectionRenderProps<ContactFormProps>;
+const { props: p, section, ctx } = Astro.props;
+const form = p.form;
+const action = form && ctx.formsEndpoint ? `${ctx.formsEndpoint}/forms/${form.id}` : undefined;
+const submitted = ctx.submittedFormId !== undefined && form?.id === ctx.submittedFormId;
+const fid = (id: string) => `${section.id}-${id}`;
+---
+<SectionFrame section={section} theme={p.theme} spacing={p.spacing} class:list={[`v-${p.variant}`]}>
+  <div class="layout">
+    <div class="side">
+      <SectionIntro eyebrow={p.eyebrow} heading={p.heading} description={p.description} align={p.variant === 'split' ? 'left' : p.align} />
+      {p.variant === 'split' && p.aside && <p class="aside muted" data-field="aside">{p.aside}</p>}
+    </div>
+    <div class:list={['formwrap', p.variant === 'card' && 'card']} data-field="formId">
+      {!form ? (
+        ctx.mode === 'preview' ? <p class="muted">Choose a form in the inspector to show it here.</p> : null
+      ) : submitted ? (
+        <p class="success" role="status">{form.settings.successMessage}</p>
+      ) : (
+        <form method="post" action={action} class="form" data-siteos-form novalidate={false}>
+          <input type="hidden" name="_page" value={ctx.pageSlug ?? '/'} />
+          <input type="hidden" name="_ts" value={Date.now()} />
+          <!-- honeypot: real people never see or fill this -->
+          <div class="hp" aria-hidden="true"><label for={fid('website')}>Website</label><input id={fid('website')} type="text" name="website" tabindex="-1" autocomplete="off" /></div>
+          {form.fields.map((f) => (
+            <div class:list={['field', f.type === 'checkbox' && 'check']}>
+              {f.type === 'checkbox' ? (
+                <label class="checklabel"><input type="checkbox" name={f.id} required={f.required} value="true" /> <span>{f.label}{f.required && <span class="req" aria-hidden="true"> *</span>}</span></label>
+              ) : (
+                <>
+                  <label for={fid(f.id)}>{f.label}{f.required && <span class="req" aria-hidden="true"> *</span>}</label>
+                  {f.type === 'textarea' ? (
+                    <textarea id={fid(f.id)} name={f.id} rows="5" required={f.required} placeholder={f.placeholder || undefined} maxlength={f.maxLength ?? 4000} />
+                  ) : f.type === 'select' ? (
+                    <select id={fid(f.id)} name={f.id} required={f.required}>
+                      <option value="">Choose…</option>
+                      {f.options.map((o) => <option value={o}>{o}</option>)}
+                    </select>
+                  ) : f.type === 'radio' ? (
+                    <div class="radios" role="radiogroup" aria-labelledby={fid(f.id)}>
+                      {f.options.map((o, i) => <label class="checklabel"><input type="radio" name={f.id} value={o} required={f.required && i === 0} /> <span>{o}</span></label>)}
+                    </div>
+                  ) : (
+                    <input
+                      id={fid(f.id)}
+                      name={f.id}
+                      type={f.type === 'phone' ? 'tel' : f.type}
+                      required={f.required}
+                      placeholder={f.placeholder || undefined}
+                      maxlength={f.maxLength ?? 300}
+                      autocomplete={f.type === 'email' ? 'email' : f.type === 'phone' ? 'tel' : f.id === 'name' ? 'name' : undefined}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+          <p class="status" role="status" aria-live="polite" data-status></p>
+          <button class="btn btn-filled" type="submit">{form.settings.submitLabel}</button>
+        </form>
+      )}
+    </div>
+  </div>
+</SectionFrame>
+
+<script>
+  // Progressive enhancement: submit with fetch and confirm in place. Without JS the form still posts normally.
+  for (const form of document.querySelectorAll<HTMLFormElement>('form[data-siteos-form]')) {
+    form.addEventListener('submit', async (e) => {
+      if (!form.action) return;
+      e.preventDefault();
+      const status = form.querySelector<HTMLElement>('[data-status]');
+      const button = form.querySelector<HTMLButtonElement>('button[type=submit]');
+      const data: Record<string, unknown> = {};
+      for (const [k, v] of new FormData(form).entries()) data[k] = v;
+      for (const cb of form.querySelectorAll<HTMLInputElement>('input[type=checkbox]')) data[cb.name] = cb.checked;
+      if (button) button.disabled = true;
+      if (status) status.textContent = 'Sending…';
+      try {
+        const res = await fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(data) });
+        const body = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; error?: string };
+        if (!res.ok || !body.ok) throw new Error(body.error || 'Something went wrong. Please try again.');
+        form.replaceWith(Object.assign(document.createElement('p'), { className: 'success', role: 'status', textContent: body.message ?? 'Thanks, we received your message.' }));
+      } catch (err) {
+        if (status) status.textContent = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+        if (button) button.disabled = false;
+      }
+    });
+  }
+</script>
+
+<style>
+  .layout { display: grid; gap: 2.5rem; }
+  .side { display: grid; gap: 1rem; align-content: start; }
+  .side :global(.intro) { margin-bottom: 0; }
+  .aside { max-width: 30rem; }
+  .form { display: grid; gap: 1.1rem; max-width: 34rem; }
+  .field { display: grid; gap: .4rem; }
+  .field label { font-weight: 600; font-size: .95rem; }
+  .req { color: var(--color-accent); }
+  input:not([type=checkbox]):not([type=radio]), textarea, select { font: inherit; color: var(--section-fg); background: color-mix(in srgb, var(--section-bg) 88%, var(--section-fg) 0%); border: 1.5px solid var(--section-border); border-radius: var(--radius-md); padding: .7rem .9rem; width: 100%; transition: border-color .15s, box-shadow .15s; }
+  .theme-light input:not([type=checkbox]):not([type=radio]), .theme-light textarea, .theme-light select { background: var(--color-background); }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent); }
+  .theme-brand input:focus, .theme-brand textarea:focus, .theme-brand select:focus { border-color: var(--section-fg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--section-fg) 25%, transparent); }
+  textarea { resize: vertical; min-height: 7rem; }
+  .checklabel { display: flex; gap: .6rem; align-items: start; font-weight: 500; cursor: pointer; }
+  .checklabel input { margin-top: .3rem; width: 1.05rem; height: 1.05rem; accent-color: var(--color-primary); }
+  .radios { display: grid; gap: .5rem; }
+  .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .status { min-height: 1.25rem; font-size: .9375rem; color: var(--section-muted); }
+  .status:empty { display: none; }
+  :global(.success) { padding: 1rem 1.25rem; border-radius: var(--radius-md); background: var(--color-primary-soft); color: var(--color-text); border-left: 3px solid var(--color-primary); font-weight: 500; max-width: 34rem; }
+  .form .btn { justify-self: start; }
+  .v-card .formwrap { padding: calc(var(--card-spacing) * 1.5); }
+  .v-stacked .form, .v-card .form { max-width: 40rem; }
+  @media (min-width: 900px) {
+    .v-split .layout { grid-template-columns: 2fr 3fr; gap: 4rem; align-items: start; }
+    .v-split .side { position: sticky; top: 2rem; }
+  }
+</style>

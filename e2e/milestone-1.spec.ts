@@ -90,7 +90,7 @@ test('variant, theme preset and device switches change the rendered output', asy
   await page.getByRole('button', { name: 'Centered' }).click();
   await expect(preview.locator('[data-section-type="hero"]')).toHaveClass(/v-centered/);
 
-  await page.getByRole('tab', { name: 'Brand' }).click();
+  await page.getByRole('button', { name: 'Brand', exact: true }).click();
   await page.getByRole('button', { name: /^Modern/ }).click();
   await expect
     .poll(() =>

@@ -96,7 +96,9 @@ describe('registry', () => {
     expect(registry.search('banner').map((d) => d.type)).toEqual(
       expect.arrayContaining(['hero', 'cta']),
     );
-    expect(registry.search('conversion').map((d) => d.type)).toEqual(['cta']);
+    expect(registry.search('conversion').map((d) => d.type)).toEqual(
+      expect.arrayContaining(['cta', 'contact-form']),
+    );
     expect(registry.search('')).toHaveLength(registry.list().length);
   });
   it('every definition has a variant thumbnail that parses', () => {

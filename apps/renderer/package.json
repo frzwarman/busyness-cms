@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev --port 4321",
-    "build": "astro build",
+    "fonts": "node scripts/sync-fonts.mjs",
+    "dev": "node scripts/sync-fonts.mjs && astro dev --port 4321",
+    "dev:ci": "node scripts/sync-fonts.mjs && astro dev --port 4321 --ignore-lock",
+    "build": "node scripts/sync-fonts.mjs && astro build",
     "preview": "astro preview",
     "typecheck": "astro check",
     "test": "vitest run"
@@ -21,6 +23,13 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.6",
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/lora": "^5.3.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/playfair-display": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
     "typescript": "~5.9.3",
     "vitest": "^5.0.1"
   }

@@ -245,6 +245,89 @@ export type Database = {
           },
         ];
       };
+      form_submissions: {
+        Row: {
+          created_at: string;
+          data: Json;
+          form_id: string;
+          id: string;
+          meta: Json;
+          site_id: string;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          data: Json;
+          form_id: string;
+          id?: string;
+          meta?: Json;
+          site_id: string;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          data?: Json;
+          form_id?: string;
+          id?: string;
+          meta?: Json;
+          site_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'form_submissions_form_id_fkey';
+            columns: ['form_id'];
+            isOneToOne: false;
+            referencedRelation: 'forms';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'form_submissions_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      forms: {
+        Row: {
+          created_at: string;
+          fields: Json;
+          id: string;
+          name: string;
+          settings: Json;
+          site_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          fields?: Json;
+          id?: string;
+          name: string;
+          settings?: Json;
+          site_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          fields?: Json;
+          id?: string;
+          name?: string;
+          settings?: Json;
+          site_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'forms_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       globals: {
         Row: {
           created_at: string;
@@ -477,6 +560,41 @@ export type Database = {
           },
         ];
       };
+      redirects: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          from_path: string;
+          id: string;
+          site_id: string;
+          to_path: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          from_path: string;
+          id?: string;
+          site_id: string;
+          to_path: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          from_path?: string;
+          id?: string;
+          site_id?: string;
+          to_path?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'redirects_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       site_members: {
         Row: {
           created_at: string;
@@ -513,7 +631,9 @@ export type Database = {
           id: string;
           name: string;
           organization_id: string;
+          published_settings: Json | null;
           published_theme: Json | null;
+          settings: Json;
           slug: string;
           theme: Json;
           updated_at: string;
@@ -524,7 +644,9 @@ export type Database = {
           id?: string;
           name: string;
           organization_id: string;
+          published_settings?: Json | null;
           published_theme?: Json | null;
+          settings?: Json;
           slug: string;
           theme: Json;
           updated_at?: string;
@@ -535,7 +657,9 @@ export type Database = {
           id?: string;
           name?: string;
           organization_id?: string;
+          published_settings?: Json | null;
           published_theme?: Json | null;
+          settings?: Json;
           slug?: string;
           theme?: Json;
           updated_at?: string;
@@ -600,11 +724,16 @@ export type Database = {
         Returns: string[];
       };
       delete_page: { Args: { p_page: string }; Returns: undefined };
+      get_public_form: { Args: { p_form: string }; Returns: Json };
       get_published_page: {
         Args: { p_site_slug: string; p_slug: string };
         Returns: Json;
       };
       get_published_site: { Args: { p_site_slug: string }; Returns: Json };
+      get_redirect: {
+        Args: { p_path: string; p_site_slug: string };
+        Returns: string;
+      };
       global_refs: {
         Args: { p_global: string };
         Returns: {
@@ -653,6 +782,10 @@ export type Database = {
         Args: { p_site: string };
         Returns: Database['public']['Enums']['member_role'];
       };
+      submit_form: {
+        Args: { p_data: Json; p_form: string; p_meta?: Json };
+        Returns: string;
+      };
       unpublish_page: { Args: { p_page: string }; Returns: undefined };
       update_asset: {
         Args: {
@@ -664,6 +797,10 @@ export type Database = {
           p_id: string;
           p_tags: string[];
         };
+        Returns: undefined;
+      };
+      update_site_settings: {
+        Args: { p_settings: Json; p_site: string };
         Returns: undefined;
       };
       update_site_theme: {

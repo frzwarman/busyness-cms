@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useEditor } from '../EditorProvider';
+import { formsQuery } from '../site/site-queries';
 
 export const entriesQuery = (siteId: string) => ({
   queryKey: ['content', siteId],
@@ -27,6 +28,7 @@ export function useResolvedDocument(): { resolved: PageDocument; ready: boolean 
   const { state, siteId } = useEditor();
   const { data: entries } = useQuery(entriesQuery(siteId));
   const { data: globals } = useQuery(globalsQuery(siteId));
+  const { data: forms } = useQuery(formsQuery(siteId));
   const resolved = useMemo(
     () =>
       resolveDocument(
@@ -39,10 +41,11 @@ export function useResolvedDocument(): { resolved: PageDocument; ready: boolean 
             tags: e.tags,
           })),
           globals: (globals ?? []).map((g) => ({ id: g.id, name: g.name, section: g.section })),
+          forms: forms ?? [],
         },
         registry,
       ),
-    [state.document, entries, globals],
+    [state.document, entries, globals, forms],
   );
   return { resolved, ready: entries !== undefined && globals !== undefined };
 }

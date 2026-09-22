@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useGlobalEditor } from './content/content-queries';
 import { ButtonControl } from './controls/ButtonControl';
 import { ContentSourceControl } from './controls/ContentSourceControl';
+import { FormPicker } from './controls/FormPicker';
 import { fieldId } from './controls/field-id';
 import { IconControl } from './controls/IconControl';
 import { ImageControl } from './controls/ImageControl';
@@ -366,7 +367,8 @@ export const isCompositeControl = (control: InspectorField['control']) =>
   control === 'list' ||
   control === 'richtext' ||
   control === 'icon' ||
-  control === 'content-source';
+  control === 'content-source' ||
+  control === 'form-picker';
 
 /** One control for one field value. Shared by top-level fields and list items (recursively). */
 export function renderControl(
@@ -377,6 +379,14 @@ export function renderControl(
   ctx: { collectionId?: string } = {},
 ): React.ReactNode {
   switch (field.control) {
+    case 'form-picker':
+      return (
+        <FormPicker
+          id={id}
+          value={(value as string | null) ?? null}
+          onChange={(v) => onChange(v)}
+        />
+      );
     case 'content-source':
       return ctx.collectionId ? (
         <ContentSourceControl

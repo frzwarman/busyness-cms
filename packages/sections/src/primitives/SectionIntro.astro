@@ -13,6 +13,8 @@ const show = eyebrow || heading || description;
   </div>
 )}
 <style>
-  .intro { display: grid; gap: .75rem; max-width: 44rem; margin-bottom: 2.5rem; }
+  .intro { display: grid; gap: .875rem; max-width: 40rem; margin-bottom: clamp(2rem, 4vw, 3rem); }
+  .intro h2, .intro h3 { max-width: 22ch; }
   .align-center { text-align: center; margin-inline: auto; }
+  .align-center h2, .align-center h3, .align-center p { margin-inline: auto; }
 </style>

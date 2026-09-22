@@ -20,7 +20,7 @@ test('content library entries flow into sections and update everywhere', async (
   const stamp = Date.now().toString(36);
 
   // Create an entry with a tag.
-  await page.getByRole('tab', { name: 'Content' }).click();
+  await page.getByRole('button', { name: 'Content', exact: true }).click();
   await page.getByRole('button', { name: 'Add' }).click();
   const list = page.getByRole('list', { name: 'Testimonials' });
   const row = list.getByRole('listitem').filter({ has: page.locator('[aria-expanded="true"]') }); // the newly added entry opens itself
@@ -30,7 +30,7 @@ test('content library entries flow into sections and update everywhere', async (
   await expect(row.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
 
   // Add a testimonials section and point it at the library by tag.
-  await page.getByRole('tab', { name: 'Sections' }).click();
+  await page.getByRole('button', { name: 'Sections', exact: true }).click();
   await page.getByRole('button', { name: 'Add section' }).click();
   await page.getByLabel('Search sections').fill('testimonials');
   await page
@@ -56,7 +56,7 @@ test('content library entries flow into sections and update everywhere', async (
   await expect(page.getByRole('group', { name: 'Testimonials', exact: true })).toHaveCount(0);
 
   // Edit the entry: the section updates without touching the section.
-  await page.getByRole('tab', { name: 'Content' }).click();
+  await page.getByRole('button', { name: 'Content', exact: true }).click();
   await list.getByRole('button', { name: new RegExp(`^Lib Person ${stamp}`) }).click();
   await list
     .getByRole('listitem')
@@ -69,13 +69,13 @@ test('content library entries flow into sections and update everywhere', async (
   );
 
   // Clean up: remove the section (picked refs none), delete the entry.
-  await page.getByRole('tab', { name: 'Sections' }).click();
+  await page.getByRole('button', { name: 'Sections', exact: true }).click();
   await preview.locator('[data-section-type="testimonials"]').click();
   await page.getByRole('button', { name: 'Delete section' }).click();
   await expect(preview.locator('[data-section-type="testimonials"]')).toHaveCount(0, {
     timeout: 15_000,
   });
-  await page.getByRole('tab', { name: 'Content' }).click();
+  await page.getByRole('button', { name: 'Content', exact: true }).click();
   page.once('dialog', (d) => d.accept());
   await list.getByRole('button', { name: `Delete Lib Person ${stamp}` }).click();
   await expect(list.getByRole('button', { name: new RegExp(`Lib Person ${stamp}`) })).toHaveCount(
@@ -146,7 +146,7 @@ test('global sections: make global, edit once, insert elsewhere, detach', async 
   await page.getByRole('button', { name: 'Detach from global' }).click();
   await page.getByLabel('Heading', { exact: true }).fill('Book the corner table');
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('tab', { name: 'Content' }).click();
+  await page.getByRole('button', { name: 'Content', exact: true }).click();
   page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: `Delete global Footer CTA ${stamp}` }).click();
   await expect(page.getByRole('button', { name: `Delete global Footer CTA ${stamp}` })).toHaveCount(

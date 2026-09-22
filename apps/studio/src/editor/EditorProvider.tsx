@@ -6,7 +6,7 @@ import {
   type EditorState,
   selectors,
 } from '@siteos/editor-core';
-import type { PageDocument, PageSummary, ThemeTokens } from '@siteos/schemas';
+import type { PageDocument, PageSummary, SiteSettings, ThemeTokens } from '@siteos/schemas';
 import { registry } from '@siteos/sections';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -30,6 +30,7 @@ export type EditorPersistence = {
   /** Resolve with the new revision; throw DraftConflictError (or any error) to surface a failure. */
   savePage: (document: PageDocument, expectedRevision: number) => Promise<number>;
   saveTheme: (theme: ThemeTokens) => Promise<void>;
+  saveSettings: (settings: SiteSettings) => Promise<void>;
 };
 export type Device = 'desktop' | 'tablet' | 'mobile';
 export type FocusRequest = { sectionId: string; fieldPath: string | null; nonce: number };
@@ -39,6 +40,8 @@ type EditorContextValue = {
   dispatch: (action: EditorAction) => void;
   theme: ThemeTokens;
   setTheme: (theme: ThemeTokens) => void;
+  siteSettings: SiteSettings;
+  setSiteSettings: (settings: SiteSettings) => void;
   pages: PageSummary[];
   siteName: string;
   saveStatus: SaveStatus;
@@ -62,6 +65,7 @@ const reducer = createEditorReducer(registry);
 export function EditorProvider({
   page,
   theme: initialTheme,
+  settings: initialSettings,
   pages,
   siteName,
   siteId,
@@ -73,6 +77,7 @@ export function EditorProvider({
 }: {
   page: PageDocument;
   theme: ThemeTokens;
+  settings: SiteSettings;
   pages: PageSummary[];
   siteName: string;
   siteId: string;
@@ -84,6 +89,7 @@ export function EditorProvider({
 }) {
   const [state, dispatch] = useReducer(reducer, page, createEditorState);
   const [theme, setThemeState] = useState(initialTheme);
+  const [siteSettings, setSiteSettingsState] = useState(initialSettings);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const [device, setDevice] = useState<Device>('desktop');
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
@@ -173,6 +179,21 @@ export function EditorProvider({
     600,
   );
 
+  const setSiteSettings = useCallback((v: SiteSettings) => setSiteSettingsState(v), []);
+  useDebouncedEffect(
+    () => {
+      if (siteSettings !== initialSettings && canEdit)
+        void persistence
+          .saveSettings(siteSettings)
+          .then(() => queryClient.invalidateQueries({ queryKey: ['sites'] }))
+          .catch((err: unknown) =>
+            setSaveError(err instanceof Error ? err.message : 'Failed to save site settings'),
+          );
+    },
+    [siteSettings],
+    700,
+  );
+
   // Keyboard shortcuts. Native browser shortcuts are left alone except the ones we own.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -202,6 +223,8 @@ export function EditorProvider({
       dispatch,
       theme,
       setTheme,
+      siteSettings,
+      setSiteSettings,
       pages,
       siteName,
       saveStatus,
@@ -222,6 +245,8 @@ export function EditorProvider({
       state,
       theme,
       setTheme,
+      siteSettings,
+      setSiteSettings,
       pages,
       siteName,
       saveStatus,

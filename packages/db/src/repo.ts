@@ -1,7 +1,11 @@
 import {
+  type FormDefinition,
+  formDefinitionSchema,
   type PageDocument,
   type PageSummary,
   pageDocumentSchema,
+  type SiteSettings,
+  siteSettingsSchema,
   type ThemeTokens,
   themeTokensSchema,
 } from '@siteos/schemas';
@@ -18,6 +22,7 @@ export type Site = {
   slug: string;
   businessType: string;
   theme: ThemeTokens;
+  settings: SiteSettings;
   role: MemberRole;
 };
 export type Draft = { document: PageDocument; revision: number; updatedAt: string };
@@ -40,7 +45,7 @@ export async function listSites(db: Db): Promise<Site[]> {
   const rows = unwrap(
     await db
       .from('sites')
-      .select('id, name, slug, business_type, theme, site_members!inner(role, user_id)')
+      .select('id, name, slug, business_type, theme, settings, site_members!inner(role, user_id)')
       .order('created_at'),
     'Loading sites',
   );
@@ -50,6 +55,7 @@ export async function listSites(db: Db): Promise<Site[]> {
     slug: r.slug,
     businessType: r.business_type,
     theme: themeTokensSchema.parse(r.theme),
+    settings: siteSettingsSchema.parse(r.settings ?? {}),
     role: (r.site_members[0]?.role ?? 'viewer') as MemberRole,
   }));
 }
@@ -565,4 +571,172 @@ export async function globalRefs(db: Db, id: string): Promise<Ref[]> {
     'Checking where this global is used',
   );
   return rows.map((r) => ({ pageId: r.page_id, pageTitle: r.page_title, sectionId: r.section_id }));
+}
+
+// ---------------------------------------------------------------------------
+// Site settings, redirects, forms (Milestone 7)
+// ---------------------------------------------------------------------------
+export async function updateSiteSettings(
+  db: Db,
+  siteId: string,
+  settings: SiteSettings,
+): Promise<void> {
+  const { error } = await db.rpc('update_site_settings', {
+    p_site: siteId,
+    p_settings: asJson(settings),
+  });
+  if (error) throw new Error(`Saving site settings: ${error.message}`);
+}
+
+export type Redirect = { id: string; fromPath: string; toPath: string; createdAt: string };
+export async function listRedirects(db: Db, siteId: string): Promise<Redirect[]> {
+  const rows = unwrap(
+    await db
+      .from('redirects')
+      .select('id, from_path, to_path, created_at')
+      .eq('site_id', siteId)
+      .order('created_at', { ascending: false }),
+    'Loading redirects',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    fromPath: r.from_path,
+    toPath: r.to_path,
+    createdAt: r.created_at,
+  }));
+}
+export async function createRedirect(
+  db: Db,
+  siteId: string,
+  fromPath: string,
+  toPath: string,
+): Promise<void> {
+  const { error } = await db
+    .from('redirects')
+    .insert({ site_id: siteId, from_path: fromPath, to_path: toPath });
+  if (error)
+    throw new Error(
+      error.code === '23505'
+        ? `A redirect from ${fromPath} already exists.`
+        : `Creating redirect: ${error.message}`,
+    );
+}
+export async function deleteRedirect(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('redirects').delete().eq('id', id);
+  if (error) throw new Error(`Deleting redirect: ${error.message}`);
+}
+
+export type FormRow = FormDefinition & { updatedAt: string };
+export async function listForms(db: Db, siteId: string): Promise<FormRow[]> {
+  const rows = unwrap(
+    await db
+      .from('forms')
+      .select('id, name, fields, settings, updated_at')
+      .eq('site_id', siteId)
+      .order('created_at'),
+    'Loading forms',
+  );
+  return rows.map((r) => ({
+    ...formDefinitionSchema.parse({
+      id: r.id,
+      name: r.name,
+      fields: r.fields,
+      settings: r.settings,
+    }),
+    updatedAt: r.updated_at,
+  }));
+}
+export async function createForm(
+  db: Db,
+  siteId: string,
+  form: Omit<FormDefinition, 'id'>,
+): Promise<string> {
+  const res = await db
+    .from('forms')
+    .insert({
+      site_id: siteId,
+      name: form.name,
+      fields: asJson(form.fields),
+      settings: asJson(form.settings),
+    })
+    .select('id')
+    .single();
+  if (res.error) throw new Error(`Creating form: ${res.error.message}`);
+  return res.data.id;
+}
+export async function updateForm(db: Db, form: FormDefinition): Promise<void> {
+  const { error } = await db
+    .from('forms')
+    .update({
+      name: form.name,
+      fields: asJson(form.fields),
+      settings: asJson(form.settings),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', form.id);
+  if (error) throw new Error(`Saving form: ${error.message}`);
+}
+export async function deleteForm(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('forms').delete().eq('id', id);
+  if (error) throw new Error(`Deleting form: ${error.message}`);
+}
+
+export type Submission = {
+  id: string;
+  formId: string;
+  data: Record<string, unknown>;
+  meta: { page?: string; referer?: string; userAgent?: string };
+  status: 'new' | 'read';
+  createdAt: string;
+};
+export async function listSubmissions(
+  db: Db,
+  siteId: string,
+  opts: { formId?: string; since?: string; limit?: number } = {},
+): Promise<Submission[]> {
+  let q = db
+    .from('form_submissions')
+    .select('id, form_id, data, meta, status, created_at')
+    .eq('site_id', siteId)
+    .order('created_at', { ascending: false })
+    .limit(opts.limit ?? 200);
+  if (opts.formId) q = q.eq('form_id', opts.formId);
+  if (opts.since) q = q.gte('created_at', opts.since);
+  const rows = unwrap(await q, 'Loading submissions');
+  return rows.map((r) => ({
+    id: r.id,
+    formId: r.form_id,
+    data: r.data as Record<string, unknown>,
+    meta: (r.meta ?? {}) as Submission['meta'],
+    status: r.status as Submission['status'],
+    createdAt: r.created_at,
+  }));
+}
+export async function setSubmissionStatus(
+  db: Db,
+  id: string,
+  status: Submission['status'],
+): Promise<void> {
+  const { error } = await db.from('form_submissions').update({ status }).eq('id', id);
+  if (error) throw new Error(`Updating submission: ${error.message}`);
+}
+export async function deleteSubmission(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('form_submissions').delete().eq('id', id);
+  if (error) throw new Error(`Deleting submission: ${error.message}`);
+}
+
+/** CSV with one column per form field, in field order, plus received time and page. Values are quoted safely. */
+export function submissionsToCsv(form: FormDefinition, rows: Submission[]): string {
+  const esc = (v: unknown) => {
+    const s =
+      v === undefined || v === null ? '' : typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v);
+    return /[",\n\r]/.test(s) || /^[=+\-@]/.test(s)
+      ? `"${s.replace(/"/g, '""').replace(/^([=+\-@])/, "'$1")}"`
+      : s;
+  };
+  const header = ['Received', 'Page', ...form.fields.map((f) => f.label)];
+  const lines = rows.map((r) =>
+    [r.createdAt, r.meta.page ?? '', ...form.fields.map((f) => r.data[f.id])].map(esc).join(','),
+  );
+  return [header.map(esc).join(','), ...lines].join('\r\n');
 }

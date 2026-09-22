@@ -5,11 +5,13 @@ import Site from '../layouts/Site.astro';
 import { PUBLISHED_CACHE } from '../lib/content.ts';
 import PageRenderer from './PageRenderer.astro';
 
-interface Props { published: PublishedPage }
-const { published } = Astro.props;
-Astro.response.headers.set('Cache-Control', PUBLISHED_CACHE);
+interface Props { published: PublishedPage; sitePrefix?: string }
+const { published, sitePrefix = '' } = Astro.props;
+const submittedFormId = Astro.url.searchParams.get('submitted') ?? undefined;
+// A post-submit redirect must not be cached at the edge.
+Astro.response.headers.set('Cache-Control', submittedFormId ? 'no-store' : PUBLISHED_CACHE);
 Astro.response.headers.set('ETag', `"${published.versionId}"`);
 ---
-<Site page={published.page} theme={published.site.theme} siteName={published.site.name}>
-  <PageRenderer page={published.page} theme={published.site.theme} pages={published.site.pages} mode="public" />
+<Site page={published.page} theme={published.site.theme} siteName={published.site.name} settings={published.site.settings} sitePrefix={sitePrefix}>
+  <PageRenderer page={published.page} theme={published.site.theme} pages={published.site.pages} mode="public" submittedFormId={submittedFormId} />
 </Site>
