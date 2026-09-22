@@ -7,9 +7,9 @@
   "vars": {
     // Production, non-secret configuration; .dev.vars overrides these for `wrangler dev`.
     // Secrets (UPLOAD_SIGNING_SECRET, CF_API_TOKEN) go in `wrangler secret put` / .dev.vars.
-    "STUDIO_ORIGIN": "http://localhost:5180",
-    "SUPABASE_URL": "",
-    "SUPABASE_PUBLISHABLE_KEY": "",
+    "STUDIO_ORIGIN": "https://siteos-studio.farizz-a.workers.dev",
+    "SUPABASE_URL": "https://gvsvhhgfmxcjbteyjyja.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_rNuLq3B483DROUtsuDuOkQ_c0anM7n5",
     // Public base URL for asset bytes. Leave empty to serve from this worker at /assets/<key>.
     "PUBLIC_ASSET_BASE_URL": "",
     // Optional cache purge on publish: set CF_ZONE_ID here and CF_API_TOKEN as a secret.
