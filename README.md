@@ -9,7 +9,7 @@ lightweight **Astro** site. Users edit business intent (variant, alignment, them
 BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS  ⇒  FAST BUSINESS WEBSITE
 ```
 
-> **Status:** Milestones 1–7 are complete: architecture foundation, database + auth, publishing, a 24-type section library, the asset system, the content library with global sections, and SEO + forms. See
+> **Status:** Milestones 1–8 are complete: architecture foundation, database + auth, publishing, a 24-type section library, the asset system, the content library with global sections, SEO + forms, and business packs with guided site creation. See
 > [Roadmap](#roadmap) for what exists today versus what is designed but not yet built.
 
 ## What works today
@@ -25,6 +25,9 @@ BUSINESS CONTENT + DESIGN SYSTEM + SECTION LIBRARY + VISUAL COMPOSITION + ASSETS
 - Content library: eight predefined collections (testimonials, services, team, locations, FAQs, logos, stats, projects)
   edited once and shown by any list section via `source` (all / by tag / picked). Global sections (edit once, appears on
   every page, detach to localize). Published versions inline both, so they stay self-contained.
+- Guided site creation: 16 business packs with real copy, 13 deterministic page recipes, suggested theme + structured
+  data, navbar/footer created as globals, a Contact (and pack-specific) form, and a review step. Nothing references
+  the pack afterwards. New pages ask what they should accomplish; the section picker opens on "Recommended for you".
 - SEO: per-page and site-wide metadata with search/social previews, canonical, Open Graph, Twitter card, favicon,
   JSON-LD from configured facts only, per-site sitemap.xml and robots.txt, 301 redirects.
 - Forms: template-based builder, Form section, protected public endpoint on the edge worker (rate limit, honeypot,
@@ -259,8 +262,8 @@ the browser, and avoiding background jobs, polling and paid services. Limits and
 | 5 Assets | ticketed R2 uploads, Web Worker resize, focal point, usage graph, dedupe | **done** |
 | 6 Content + globals | reusable collections, global sections, detach | **done** |
 | 7 SEO + forms | metadata, sitemap, JSON-LD, form builder, inbox, public design pass | **done** |
-| 8 Business packs | packs, page recipes, presets, guided creation | next |
-| 9 Hardening | a11y, performance, caching, mobile editor, health checks | planned |
+| 8 Business packs | 16 packs, 13 recipes, guided creation, recipe-based new page | **done** |
+| 9 Hardening | a11y, performance, caching, mobile editor, health checks | next |
 
 ## Third-party assets
 

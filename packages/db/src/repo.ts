@@ -740,3 +740,10 @@ export function submissionsToCsv(form: FormDefinition, rows: Submission[]): stri
   );
   return [header.map(esc).join(','), ...lines].join('\r\n');
 }
+
+/** Owner only. Deletes the site (cascades pages, assets metadata, forms…) and returns R2 keys to remove. */
+export async function deleteSite(db: Db, siteId: string): Promise<string[]> {
+  const { data, error } = await db.rpc('delete_site', { p_site: siteId });
+  if (error) throw new Error(`Deleting site: ${error.message}`);
+  return data ?? [];
+}

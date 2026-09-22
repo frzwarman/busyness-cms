@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" width="1600" height="1200" role="img" aria-label="Placeholder illustration">
+  <rect width="1600" height="1200" fill="#e4e7e2"/>
+  <rect x="120" y="140" width="1360" height="920" rx="32" fill="#c5cdc2" opacity=".5"/><path d="M240 900 L640 420 L900 760 L1120 560 L1400 900 Z" fill="#6f7c6c" opacity=".5"/><circle cx="1200" cy="360" r="120" fill="#6f7c6c" opacity=".6"/>
+</svg>

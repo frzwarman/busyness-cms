@@ -724,6 +724,7 @@ export type Database = {
         Returns: string[];
       };
       delete_page: { Args: { p_page: string }; Returns: undefined };
+      delete_site: { Args: { p_site: string }; Returns: string[] };
       get_public_form: { Args: { p_form: string }; Returns: Json };
       get_published_page: {
         Args: { p_site_slug: string; p_slug: string };

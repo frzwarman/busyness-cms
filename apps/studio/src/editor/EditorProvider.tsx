@@ -49,6 +49,7 @@ type EditorContextValue = {
   saveNow: () => void;
   siteId: string;
   siteSlug: string;
+  businessType: string;
   canEdit: boolean;
   canPublish: boolean;
   device: Device;
@@ -70,6 +71,7 @@ export function EditorProvider({
   siteName,
   siteId,
   siteSlug,
+  businessType = 'generic',
   persistence,
   canEdit = true,
   canPublish = false,
@@ -82,6 +84,7 @@ export function EditorProvider({
   siteName: string;
   siteId: string;
   siteSlug: string;
+  businessType?: string;
   persistence: EditorPersistence;
   canEdit?: boolean;
   canPublish?: boolean;
@@ -232,6 +235,7 @@ export function EditorProvider({
       saveNow: () => void save(),
       siteId,
       siteSlug,
+      businessType,
       canEdit,
       canPublish,
       device,
@@ -254,6 +258,7 @@ export function EditorProvider({
       save,
       siteId,
       siteSlug,
+      businessType,
       canEdit,
       canPublish,
       device,

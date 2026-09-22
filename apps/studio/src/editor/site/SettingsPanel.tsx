@@ -1,6 +1,7 @@
-import { createRedirect, deleteRedirect } from '@siteos/db';
+import { createRedirect, deleteRedirect, deleteSite } from '@siteos/db';
 import type { ImageRef, SiteSettings } from '@siteos/schemas';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { deleteAssetObjects } from '@/lib/assets/upload';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { ImageControl } from '../controls/ImageControl';
@@ -276,6 +278,7 @@ export function SettingsPanel() {
       </Section>
 
       <Redirects siteId={siteId} canEdit={canEdit} />
+      <DangerZone />
     </div>
   );
 }
@@ -435,5 +438,60 @@ export function Counter({ value, max }: { value: string; max: number }) {
       {value.length}/{max}
       {value.length > max ? ' · may be cut off in search results' : ''}
     </p>
+  );
+}
+
+function DangerZone() {
+  const { siteId, siteName, canPublish } = useEditor();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const keys = await deleteSite(supabase, siteId);
+      await deleteAssetObjects(siteId, keys).catch(() => undefined);
+      await qc.invalidateQueries();
+      void navigate({ to: '/' });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete the site.');
+      setBusy(false);
+    }
+  };
+  if (!canPublish) return null;
+  return (
+    <Section
+      title="Delete site"
+      hint="Owners only. Removes every page, version, asset, form and submission of this site. This cannot be undone."
+    >
+      <div className="grid gap-2 rounded-md border border-destructive/40 p-3">
+        <Label htmlFor="delete-confirm" className="text-xs">
+          Type the site name to confirm: <span className="font-mono">{siteName}</span>
+        </Label>
+        <Input
+          id="delete-confirm"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          placeholder={siteName}
+        />
+        {error && (
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        )}
+        <Button
+          variant="destructive"
+          size="sm"
+          className="justify-self-start"
+          disabled={confirm !== siteName || busy}
+          onClick={() => void remove()}
+        >
+          {busy ? 'Deleting…' : 'Delete this site permanently'}
+        </Button>
+      </div>
+    </Section>
   );
 }

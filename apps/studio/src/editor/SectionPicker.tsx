@@ -32,10 +32,12 @@ function readRecent(): string[] {
 }
 
 export function SectionPicker() {
-  const { pickerOpen, setPickerOpen, dispatch, state, siteId } = useEditor();
+  const { pickerOpen, setPickerOpen, dispatch, state, siteId, businessType } = useEditor();
   const { data: globals } = useQuery(globalsQuery(siteId));
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<SectionCategory | 'all' | 'recent' | 'globals'>('all');
+  const [category, setCategory] = useState<
+    SectionCategory | 'all' | 'recent' | 'globals' | 'recommended'
+  >('recommended');
   const [picked, setPicked] = useState<SectionDefinition | null>(null);
   const recent = useMemo(() => readRecent(), []);
 
@@ -48,11 +50,17 @@ export function SectionPicker() {
 
   const results = useMemo(() => {
     let list = registry.search(query);
+    // A typed search looks across every section, whatever category is selected.
+    if (query.trim() && category !== 'globals') return list;
     if (category === 'recent') list = list.filter((d) => recent.includes(d.type));
+    else if (category === 'recommended')
+      list = list.filter(
+        (d) => d.recommendedFor.includes(businessType) || d.recommendedFor.includes('*'),
+      );
     else if (category === 'globals') list = [];
     else if (category !== 'all') list = list.filter((d) => d.category === category);
     return list;
-  }, [query, category, recent]);
+  }, [query, category, recent, businessType]);
 
   const categoriesInUse = sectionCategories.filter((c) => registry.byCategory(c.id).length > 0);
 
@@ -118,6 +126,7 @@ export function SectionPicker() {
               aria-label="Section categories"
             >
               {[
+                { id: 'recommended' as const, label: 'Recommended for you' },
                 { id: 'all' as const, label: 'All sections' },
                 ...(recent.length ? [{ id: 'recent' as const, label: 'Recently used' }] : []),
                 ...(globals?.length ? [{ id: 'globals' as const, label: 'Global sections' }] : []),
